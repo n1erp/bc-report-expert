@@ -28,3 +28,23 @@ public class AppConstantsTests
         Assert.Equal("Dark", ThemeNames.Dark);
     }
 }
+
+public class ThemeNamesTests
+{
+    [Theory]
+    [InlineData("Light", false)]
+    [InlineData("Desert", false)]
+    [InlineData("Dark", true)]
+    [InlineData("Aquatic", true)]
+    [InlineData("Dusk", true)]
+    [InlineData("Night Sky", true)]
+    public void ContrastThemesPickTheRightBase(string theme, bool dark) =>
+        Assert.Equal(dark, ThemeNames.IsDarkBase(theme));
+
+    [Fact]
+    public void SystemFollowsWindowsAndEveryThemeIsListed()
+    {
+        Assert.Null(ThemeNames.IsDarkBase(ThemeNames.System));
+        Assert.Equal(["System", "Light", "Dark", "Aquatic", "Desert", "Dusk", "Night Sky"], ThemeNames.All);
+    }
+}

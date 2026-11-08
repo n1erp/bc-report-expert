@@ -1,0 +1,65 @@
+name: 🧩 RDLC / Business Central compatibility
+description: A layout that renders differently in REX than in Business Central, or that BC rejects after editing in REX.
+title: "[Compat] "
+labels: ["compatibility", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form when the RDLC itself is the problem: REX changed something BC does not accept, or REX's preview differs from BC's output.
+  - type: input
+    id: version
+    attributes:
+      label: REX version
+      placeholder: "rex-2.0-baboon"
+    validations:
+      required: true
+  - type: input
+    id: bc-version
+    attributes:
+      label: Business Central version
+      placeholder: "BC 25.2 (online / on-premises)"
+    validations:
+      required: true
+  - type: input
+    id: report
+    attributes:
+      label: Report
+      description: Report object ID and name, standard or custom.
+      placeholder: "1306 Standard Sales - Invoice (custom layout)"
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What goes wrong?
+      options:
+        - BC refuses the layout (error when importing or running)
+        - The output in BC differs from REX's preview
+        - REX cannot open or preview a layout that works in BC
+        - REX changed parts of the layout I did not edit
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Description
+      description: What you changed in REX, what BC shows (error text or a screenshot of both outputs).
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error text from BC or REX
+      render: text
+  - type: textarea
+    id: layout
+    attributes:
+      label: Layouts
+      description: Attach the layout before and after the REX edit (zipped .rdlc), with confidential data removed.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I removed confidential data from the attachments.
+          required: true

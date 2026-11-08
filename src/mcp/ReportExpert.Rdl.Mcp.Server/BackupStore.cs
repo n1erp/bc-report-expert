@@ -36,8 +36,17 @@ public static class BackupStore
         string folder = FolderFor(filePath);
         Directory.CreateDirectory(folder);
 
-        string stamp = DateTime.UtcNow.ToString(TimestampFormat, CultureInfo.InvariantCulture);
-        string backupPath = Path.Combine(folder, $"{Path.GetFileName(filePath)}.{stamp}{Extension}");
+        // Backups are ordered by name, so two backups in the same millisecond (an edit followed at once by a
+        // restore) must not share a name: the second one would overwrite the first.
+        var moment = DateTime.UtcNow;
+        string backupPath;
+        do
+        {
+            string stamp = moment.ToString(TimestampFormat, CultureInfo.InvariantCulture);
+            backupPath = Path.Combine(folder, $"{Path.GetFileName(filePath)}.{stamp}{Extension}");
+            moment = moment.AddMilliseconds(1);
+        }
+        while (File.Exists(backupPath) || Enumerate(folder, Path.GetFileName(filePath)).Any(file => string.CompareOrdinal(file.Name, Path.GetFileName(backupPath)) >= 0));
 
         File.Copy(filePath, backupPath, overwrite: true);
         Prune(folder, Path.GetFileName(filePath));

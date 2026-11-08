@@ -7,11 +7,14 @@ namespace ReportExpert.Modules.Preview.Helpers;
 
 public sealed class BoolToVisibilityConverter : IValueConverter
 {
+    /// <summary>Visible when false instead of when true.</summary>
+    public bool Invert { get; set; }
+
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
-        value is true ? Visibility.Visible : Visibility.Collapsed;
+        (value is true) ^ Invert ? Visibility.Visible : Visibility.Collapsed;
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
-        value is Visibility.Visible;
+        (value is Visibility.Visible) ^ Invert;
 }
 
 /// <summary>

@@ -12,6 +12,8 @@
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" />
     <PackageReference Include="WPF-UI" />
+    <PackageReference Include="System.Speech" />
+    <PackageReference Include="PdfPig" />
   </ItemGroup>
 
   <ItemGroup>

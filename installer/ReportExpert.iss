@@ -2,23 +2,23 @@
 ; Build: run scripts/build-release.ps1 from the repo root (packages publish output + optional zip + installer)
 
 #ifndef MyAppVersion
-  #define MyAppVersion "1.0.1"
+  #define MyAppVersion "2.0.0"
 #endif
 
 #ifndef MyAppDisplayVersion
-  #define MyAppDisplayVersion "1.0"
+  #define MyAppDisplayVersion "2.0"
 #endif
 
 #ifndef MyAppCodename
-  #define MyAppCodename "Marmoset"
+  #define MyAppCodename "Baboon"
 #endif
 
 #define MyAppName "Report Expert"
-#define MyAppPublisher "TAHER El Mehdi"
+#define MyAppPublisher "N1ERP"
 #define MyAppExeName "ReportExpert.exe"
-#define MyAppURL "https://github.com/taher-el-mehdi/bc-report-expert"
-#define MyAppSupportURL "https://github.com/taher-el-mehdi/bc-report-expert/issues"
-#define MyAppUpdatesURL "https://github.com/taher-el-mehdi/bc-report-expert/releases"
+#define MyAppURL "https://apps.microsoft.com/detail/9nwqjz08pqzd"
+#define MyAppSupportURL "https://github.com/n1erp/bc-report-expert/issues"
+#define MyAppUpdatesURL "https://apps.microsoft.com/detail/9nwqjz08pqzd"
 #define PublishDir "..\artifacts\publish\win-x64"
 #define MyAppIcon "..\Assets\app-icon.ico"
 

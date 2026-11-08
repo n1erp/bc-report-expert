@@ -5,10 +5,10 @@ If you discovered Report Expert on GitHub and want to contribute a feature tomor
 ## The first five things to understand
 
 1. **The running app is `ReportExpert.App`.** Home and Settings live there. Preview is a window from Home, not a nav tab.
-2. **Live code vs scaffolding.** Preview / Copilot / Editors / RdlcDesigner / `src/mcp` are live. `Application`, `Infrastructure`, `Plugins`, `Shared`, `Reporting.*`, and Localization are in the solution but **not** what the UI calls. Edit the live path unless you are doing the consolidation in [Roadmap.md](Roadmap.md).
+2. **Live code vs scaffolding.** The app, Preview, Copilot, Editors, `Reporting.Design`, Storage, and `src/mcp` are live. `Application`, `Infrastructure`, `Plugins`, `Shared`, Localization, and the other `Reporting.*` libraries build but the UI does not call them. See [ARCHITECTURE.md](ARCHITECTURE.md#live-projects-and-scaffolding).
 3. **Modules must not orchestrate each other.** Wire cross-feature behavior through `ShellCoordinator`. Copilot talks to MCP via `IMcpToolGateway`, never via a reference to `rdlc-mcp`.
 4. **Settings and secrets are local.** `%AppData%\ReportExpert\copilot.json` holds API keys. Never commit it. Examples: [examples/copilot.example.json](examples/copilot.example.json).
-5. **Tests are xUnit on Windows.** `dotnet test ReportExpert.slnx` is the gate. UI chrome is manual / LayoutSmoke.
+5. **Tests are xUnit.** `dotnet test ReportExpert.slnx` is the gate. WPF tests need Windows. UI chrome is checked by hand.
 
 ## Environment setup
 
@@ -19,22 +19,22 @@ If you discovered Report Expert on GitHub and want to contribute a feature tomor
 - Optional: an AI provider key, or [Ollama](https://ollama.com)
 
 ```bash
-git clone https://github.com/taher-el-mehdi/bc-report-expert.git
+git clone https://github.com/n1erp/bc-report-expert.git
 cd bc-report-expert
 ```
 
 ## Project structure
 
-See [ProjectStructure.md](ProjectStructure.md). Short map:
+See [ARCHITECTURE.md](ARCHITECTURE.md). Short map:
 
 | Path | What it is |
 |------|------------|
-| `src/ReportExpert.App` | WPF shell — start here for navigation / workspace |
-| `src/ReportExpert.Modules.Preview` | PDF preview, sample data, Settings |
-| `src/ReportExpert.Modules.Copilot` | Rex chat + agent loop |
-| `src/ReportExpert.RdlcDesigner` | Layout editor hosted on Home |
-| `src/mcp/` | RDL library + `rdlc-mcp` + client |
-| `tests/` | xUnit projects + LayoutSmoke |
+| `src/ReportExpert.App` | WPF shell, report center, and designer |
+| `src/ReportExpert.Reporting.Design` | Report engine: revisions, layout edits, preview data |
+| `src/ReportExpert.Modules.Preview` | Workspace preview, sample data, Settings |
+| `src/ReportExpert.Modules.Copilot` | Rex chat and agent loop |
+| `src/mcp/` | RDL library, `rdlc-mcp`, and the MCP client |
+| `tests/` | xUnit projects |
 | `docs/` | Architecture and module notes |
 
 ## First build
@@ -62,7 +62,7 @@ dotnet test tests/ReportExpert.Modules.Copilot.Tests
 
 ## Where features belong
 
-Use the table in [ARCHITECTURE.md](ARCHITECTURE.md#where-to-add-a-new-feature). Examples:
+Use the table in [ARCHITECTURE.md](ARCHITECTURE.md#where-a-change-belongs). Examples:
 
 - New Copilot provider default → `CopilotProvider` / `CopilotProviderDefaults`
 - New RDLC edit tool → `src/mcp/ReportExpert.Rdl.Mcp.Server/Tools` + tests in `Rdl.Core` / `Rdl.Mcp.Server`
@@ -97,4 +97,4 @@ These are sized for a new contributor. They are suggestions for maintainers to f
 
 - [DevelopmentGuide.md](DevelopmentGuide.md)
 - [TESTING.md](TESTING.md)
-- [CODEBASE_ANALYSIS.md](CODEBASE_ANALYSIS.md)
+- [ARCHITECTURE.md](ARCHITECTURE.md)

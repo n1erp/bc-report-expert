@@ -1,8 +1,11 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Discussions
-    url: https://github.com/taher-el-mehdi/bc-report-expert/discussions
-    about: Ask open-ended questions, share ideas, and talk with the community.
-  - name: Documentation
-    url: https://github.com/taher-el-mehdi/bc-report-expert/tree/main/docs
-    about: Architecture, development guide, troubleshooting, and module docs.
+  - name: 💬 Discussions
+    url: https://github.com/n1erp/bc-report-expert/discussions
+    about: Open-ended questions, ideas and showing what you built with REX.
+  - name: 📚 Documentation
+    url: https://github.com/n1erp/bc-report-expert/tree/main/docs
+    about: Architecture, development guide, troubleshooting and module docs.
+  - name: 🔒 Security vulnerability
+    url: https://github.com/n1erp/bc-report-expert/security/policy
+    about: Please report security problems privately, not as a public issue.

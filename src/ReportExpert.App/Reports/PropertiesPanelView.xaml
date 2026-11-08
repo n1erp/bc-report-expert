@@ -1,0 +1,190 @@
+﻿<UserControl x:Class="ReportExpert.App.Reports.PropertiesPanelView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:local="clr-namespace:ReportExpert.App.Reports"
+             xmlns:design="clr-namespace:ReportExpert.Reporting.Design;assembly=ReportExpert.Reporting.Design"
+             TextElement.FontFamily="{StaticResource Safi.FontFamily}">
+    <!-- The designer's property sheet, shown in the shared side panel (activity bar: Properties). -->
+    <UserControl.Resources>
+        <local:NullToVisibilityConverter x:Key="NullToVis" />
+        <local:NullToVisibilityConverter x:Key="NotNullToVis" Invert="True" />
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <Style x:Key="PaneToggle" TargetType="ToggleButton">
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="{DynamicResource Safi.TextPrimaryBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bd" CornerRadius="5" Padding="{TemplateBinding Padding}" BorderThickness="1"
+                                BorderBrush="{DynamicResource Safi.DividerBrush}" Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Safi.ChipBrush}" />
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Safi.PrimaryLightenBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="LayoutButton" TargetType="Button">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Margin" Value="0,1,2,1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="{DynamicResource Safi.TextPrimaryBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Safi.TableHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.7" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+    <DockPanel Margin="10,8">
+                    <!-- Header: what is selected, then search and the Categorized / A–Z switch (Report Builder's Properties pane). -->
+                    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                        <DockPanel>
+                            <Border DockPanel.Dock="Right" Style="{StaticResource Safi.Chip}" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Current.SelectedKind}" FontSize="11" />
+                            </Border>
+                            <TextBlock Style="{StaticResource Safi.SectionTitle}" Text="{Binding SelectedItem}" Margin="0" TextTrimming="CharacterEllipsis"
+                                       ToolTip="{Binding SelectedItem}" />
+                        </DockPanel>
+                        <Button Style="{StaticResource Safi.OutlinedButton}" Command="{Binding PageSetupCommand}" HorizontalAlignment="Left" Margin="0,6,0,0" Padding="10,3"
+                                Visibility="{Binding SelectedDesignItem, Converter={StaticResource NullToVis}}">
+                            <StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="DocumentMargins24" FontSize="14" Margin="0,0,6,0" /><TextBlock Text="Page setup…" /></StackPanel>
+                        </Button>
+                        <DockPanel Margin="0,8,0,0">
+                            <ToggleButton DockPanel.Dock="Right" Style="{StaticResource PaneToggle}" IsChecked="{Binding IsAlphabetical}" Margin="6,0,0,0"
+                                          ToolTip="Alphabetical list (off: grouped by category)">
+                                <TextBlock Text="A–Z" FontSize="11.5" FontWeight="SemiBold" />
+                            </ToggleButton>
+                            <ui:TextBox PlaceholderText="Search properties" Icon="{ui:SymbolIcon Search24}"
+                                        Text="{Binding PropertySearch, UpdateSourceTrigger=PropertyChanged}" ClearButtonEnabled="True" />
+                        </DockPanel>
+                    </StackPanel>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                        <!-- Layout: align, size and stacking order (was the Align / Arrange toolbar menus). -->
+                        <Expander Header="Layout" IsExpanded="True" Margin="0,0,0,6"
+                                  Visibility="{Binding SelectedDesignItem, Converter={StaticResource NotNullToVis}}"
+                                  ToolTip="Ctrl+click items to select several; the first one selected is the reference">
+                            <Grid Margin="0,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="60" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="Align" Style="{StaticResource Safi.Caption}" VerticalAlignment="Center" />
+                                <WrapPanel Grid.Row="0" Grid.Column="1">
+                                    <Button Style="{StaticResource LayoutButton}" Visibility="{Binding Arrangements[AlignLeft], Converter={StaticResource BoolToVis}}" Command="{Binding ArrangeCommand}" CommandParameter="AlignLeft" ToolTip="Align left edges"><ui:SymbolIcon Symbol="AlignLeft24" FontSize="16" /></Button>
+                                    <Button Style="{StaticResource LayoutButton}" Visibility="{Binding Arrangements[AlignCenter], Converter={StaticResource BoolToVis}}" Command="{Binding ArrangeCommand}" CommandParameter="AlignCenter" ToolTip="Align centers"><ui:SymbolIcon Symbol="AlignCenterHorizontal24" FontSize="16" /></Button>
+                                    <Button Style="{StaticResource LayoutButton}" Visibility="{Binding Arrangements[AlignRight], Converter={StaticResource BoolToVis}}" Command="{Binding ArrangeCommand}" CommandParameter="AlignRight" ToolTip="Align right edges"><ui:SymbolIcon Symbol="AlignRight24" FontSize="16" /></Button>
+                                    <Button Style="{StaticResource LayoutButton}" Visibility="{Binding Arrangements[AlignTop], Converter={StaticResource BoolToVis}}" Command="{Binding ArrangeCommand}" CommandParameter="AlignTop" ToolTip="Align top edges"><ui:SymbolIcon Symbol="AlignTop24" FontSize="16" /></Button>
+                                    <Button Style="{StaticResource LayoutButton}" Visibility="{Binding Arrangements[AlignMiddle], Converter={StaticResource BoolToVis}}" Command="{Binding ArrangeCommand}" CommandParameter="AlignMiddle" ToolTip="Align middles"><ui:SymbolIcon Symbol="AlignCenterVertical24" FontSize="16" /></Button>
+                                    <Button Style="{StaticResource LayoutButton}" Visibility="{Binding Arrangements[AlignBottom], Converter={StaticResource BoolToVis}}" Command="{Binding ArrangeCommand}" CommandParameter="AlignBottom" ToolTip="Align bottom edges"><ui:SymbolIcon Symbol="AlignBottom24" FontSize="16" /></Button>
+                                </WrapPanel>
+                                <TextBlock Grid.Row="1" Text="Size" Style="{StaticResource Safi.Caption}" VerticalAlignment="Center" />
+                                <WrapPanel Grid.Row="1" Grid.Column="1">
+                                    <Button Style="{StaticResource LayoutButton}" Visibility="{Binding Arrangements[SameSize], Converter={StaticResource BoolToVis}}" Command="{Binding ArrangeCommand}" CommandParameter="SameSize" ToolTip="Make same size"><ui:SymbolIcon Symbol="ArrowFit24" FontSize="16" /></Button>
+                                    <Button Style="{StaticResource LayoutButton}" Visibility="{Binding Arrangements[SameWidth], Converter={StaticResource BoolToVis}}" Command="{Binding ArrangeCommand}" CommandParameter="SameWidth" ToolTip="Make same width"><ui:SymbolIcon Symbol="ArrowAutofitWidth24" FontSize="16" /></Button>
+                                    <Button Style="{StaticResource LayoutButton}" Visibility="{Binding Arrangements[SameHeight], Converter={StaticResource BoolToVis}}" Command="{Binding ArrangeCommand}" CommandParameter="SameHeight" ToolTip="Make same height"><ui:SymbolIcon Symbol="ArrowAutofitHeight24" FontSize="16" /></Button>
+                                    <Button Style="{StaticResource LayoutButton}" Visibility="{Binding Arrangements[FitWidth], Converter={StaticResource BoolToVis}}" Command="{Binding ArrangeCommand}" CommandParameter="FitWidth" ToolTip="Fit to the band width"><ui:SymbolIcon Symbol="AutoFitWidth24" FontSize="16" /></Button>
+                                </WrapPanel>
+                                <TextBlock Grid.Row="2" Text="Center" Style="{StaticResource Safi.Caption}" VerticalAlignment="Center" />
+                                <WrapPanel Grid.Row="2" Grid.Column="1">
+                                    <Button Style="{StaticResource LayoutButton}" Visibility="{Binding Arrangements[CenterHorizontally], Converter={StaticResource BoolToVis}}" Command="{Binding ArrangeCommand}" CommandParameter="CenterHorizontally" ToolTip="Center horizontally in the band"><ui:SymbolIcon Symbol="DocumentPageTopCenter24" FontSize="16" /></Button>
+                                    <Button Style="{StaticResource LayoutButton}" Visibility="{Binding Arrangements[CenterVertically], Converter={StaticResource BoolToVis}}" Command="{Binding ArrangeCommand}" CommandParameter="CenterVertically" ToolTip="Center vertically in the band"><ui:SymbolIcon Symbol="TextboxAlignCenter24" FontSize="16" /></Button>
+                                </WrapPanel>
+                                <TextBlock Grid.Row="3" Text="Grid" Style="{StaticResource Safi.Caption}" VerticalAlignment="Center" />
+                                <WrapPanel Grid.Row="3" Grid.Column="1">
+                                    <Button Style="{StaticResource LayoutButton}" Visibility="{Binding Arrangements[AlignToGrid], Converter={StaticResource BoolToVis}}" Command="{Binding ArrangeCommand}" CommandParameter="AlignToGrid" ToolTip="Snap position to the grid"><ui:SymbolIcon Symbol="ArrowFitIn24" FontSize="16" /></Button>
+                                    <Button Style="{StaticResource LayoutButton}" Visibility="{Binding Arrangements[SizeToGrid], Converter={StaticResource BoolToVis}}" Command="{Binding ArrangeCommand}" CommandParameter="SizeToGrid" ToolTip="Snap size to the grid"><ui:SymbolIcon Symbol="ArrowAutofitContent24" FontSize="16" /></Button>
+                                </WrapPanel>
+                                <TextBlock Grid.Row="4" Text="Order" Style="{StaticResource Safi.Caption}" VerticalAlignment="Center" />
+                                <WrapPanel Grid.Row="4" Grid.Column="1">
+                                    <Button Style="{StaticResource LayoutButton}" Visibility="{Binding Arrangements[BringToFront], Converter={StaticResource BoolToVis}}" Command="{Binding ArrangeCommand}" CommandParameter="BringToFront" ToolTip="Bring to front"><ui:SymbolIcon Symbol="PositionToFront24" FontSize="16" /></Button>
+                                    <Button Style="{StaticResource LayoutButton}" Visibility="{Binding Arrangements[BringForward], Converter={StaticResource BoolToVis}}" Command="{Binding ArrangeCommand}" CommandParameter="BringForward" ToolTip="Bring forward"><ui:SymbolIcon Symbol="PositionForward24" FontSize="16" /></Button>
+                                    <Button Style="{StaticResource LayoutButton}" Visibility="{Binding Arrangements[SendBackward], Converter={StaticResource BoolToVis}}" Command="{Binding ArrangeCommand}" CommandParameter="SendBackward" ToolTip="Send backward"><ui:SymbolIcon Symbol="PositionBackward24" FontSize="16" /></Button>
+                                    <Button Style="{StaticResource LayoutButton}" Visibility="{Binding Arrangements[SendToBack], Converter={StaticResource BoolToVis}}" Command="{Binding ArrangeCommand}" CommandParameter="SendToBack" ToolTip="Send to back"><ui:SymbolIcon Symbol="PositionToBack24" FontSize="16" /></Button>
+                                </WrapPanel>
+                                <TextBlock Grid.Row="5" Text="Spacing" Style="{StaticResource Safi.Caption}" VerticalAlignment="Center"
+                                           Visibility="{Binding Arrangements[Spacing], Converter={StaticResource BoolToVis}}" />
+                                <WrapPanel Grid.Row="5" Grid.Column="1">
+                                    <Button Style="{StaticResource LayoutButton}" Visibility="{Binding Arrangements[DistributeHorizontally], Converter={StaticResource BoolToVis}}" Command="{Binding ArrangeCommand}" CommandParameter="DistributeHorizontally" ToolTip="Make horizontal spacing equal (3 or more items)"><ui:SymbolIcon Symbol="AlignSpaceEvenlyHorizontal24" FontSize="16" /></Button>
+                                    <Button Style="{StaticResource LayoutButton}" Visibility="{Binding Arrangements[DistributeVertically], Converter={StaticResource BoolToVis}}" Command="{Binding ArrangeCommand}" CommandParameter="DistributeVertically" ToolTip="Make vertical spacing equal (3 or more items)"><ui:SymbolIcon Symbol="AlignSpaceEvenlyVertical24" FontSize="16" /></Button>
+                                </WrapPanel>
+                            </Grid>
+                        </Expander>
+                        <ItemsControl ItemsSource="{Binding DisplaySections}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type design:DesignPropertySection}">
+                                    <Expander Header="{Binding Key}" IsExpanded="True" Margin="0,0,0,6">
+                                        <ItemsControl ItemsSource="{Binding Properties}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type design:DesignProperty}">
+                                                    <Grid Margin="0,3">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="118" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="Auto" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding Key}" Style="{StaticResource Safi.Caption}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Key}" />
+                                                        <ComboBox Grid.Column="1" IsEditable="True" Text="{Binding Value, Mode=OneWay}" ItemsSource="{Binding Options}"
+                                                                  Tag="{Binding Key}" LostKeyboardFocus="OnPropertyCommit" KeyDown="OnPropertyKey" ToolTip="{Binding Value}"
+                                                                  Visibility="{Binding Options, Converter={StaticResource NotNullToVis}}" />
+                                                        <TextBox Grid.Column="1" Text="{Binding Value, Mode=OneWay}" Tag="{Binding Key}" ToolTip="{Binding Value}"
+                                                                 LostKeyboardFocus="OnPropertyCommit" KeyDown="OnPropertyKey"
+                                                                 Visibility="{Binding Options, Converter={StaticResource NullToVis}}">
+                                                            <TextBox.Style>
+                                                                <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                                                                    <Style.Triggers>
+                                                                        <!-- Expressions in a code font, so they read as code. -->
+                                                                        <DataTrigger Binding="{Binding IsExpression}" Value="True">
+                                                                            <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+                                                                            <Setter Property="FontSize" Value="11.5" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBox.Style>
+                                                        </TextBox>
+                                                        <Button Grid.Column="2" Style="{StaticResource LayoutButton}" Width="26" Margin="4,0,0,0" Tag="{Binding Key}" Click="OnExpression"
+                                                                ToolTip="Edit in the expression editor (fx)"
+                                                                Visibility="{Binding AllowExpression, Converter={StaticResource BoolToVis}}">
+                                                            <TextBlock Text="fx" FontStyle="Italic" FontWeight="SemiBold" FontSize="12" />
+                                                        </Button>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Expander>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+</UserControl>

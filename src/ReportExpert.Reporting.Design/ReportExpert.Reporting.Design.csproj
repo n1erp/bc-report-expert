@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>ReportExpert.Reporting.Design</RootNamespace>
+    <AssemblyName>ReportExpert.Reporting.Design</AssemblyName>
+    <Description>Report design engine for REX V3. Ported from SafiPay.Reporting and adapted to the desktop: file-backed revisions, Business Central datasets, and a trusted local policy.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\mcp\ReportExpert.Rdl.Core\ReportExpert.Rdl.Core.csproj" />
+    <ProjectReference Include="..\ReportExpert.Reporting.Export\ReportExpert.Reporting.Export.csproj" />
+    <ProjectReference Include="..\ReportExpert.Core\ReportExpert.Core.csproj" />
+    <ProjectReference Include="..\ReportExpert.Domain\ReportExpert.Domain.csproj" />
+    <ProjectReference Include="..\ReportExpert.Storage\ReportExpert.Storage.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Templates\*.rdlc" LogicalName="ReportExpert.Reporting.Design.Templates.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ReportExpert.Reporting.Design.Tests" />
+  </ItemGroup>
+
+</Project>

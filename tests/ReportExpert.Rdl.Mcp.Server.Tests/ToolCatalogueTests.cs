@@ -219,6 +219,8 @@ public class ToolCatalogueTests
             {
                 "twenty" => 20,
                 "thirty" => 30,
+                "forty" => 40,
+                "fifty" => 50,
                 _ when unit >= 0 => unit,
                 _ => throw new InvalidOperationException($"The README spells a number this test cannot read: '{word}'."),
             };

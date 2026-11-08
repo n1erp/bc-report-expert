@@ -1,23 +1,19 @@
-# GitHub Discussions recommendations
+# GitHub Discussions
 
-Enable **Discussions** on the repository and seed these categories:
+Enable Discussions on [n1erp/bc-report-expert](https://github.com/n1erp/bc-report-expert) and use these categories:
 
 | Category | Purpose |
 |----------|---------|
-| **Announcements** | Releases, breaking changes, maintainer notes (maintainers only) |
-| **Q&A** | Setup, Copilot providers, RDLC preview questions |
-| **Ideas** | Feature brainstorming before filing a formal issue |
-| **Show and tell** | Scripts, integrations, custom layouts |
-| **Help wanted** | Mentorship for first-time contributors |
+| **Announcements** | rex-2.0-baboon and later notes. Maintainer posts only. |
+| **Q&A** | Setup, Rex providers, preview and designer questions |
+| **Ideas** | A feature before it becomes an issue |
+| **Show and tell** | Layouts and integrations |
+| **Help wanted** | First contributions |
 
-## Suggested sticky posts
+Sticky posts:
 
-1. **Welcome** — link to README, CONTRIBUTING, and Code of Conduct (when added).
-2. **How we triage** — bugs/features go to Issues; open-ended talk stays in Discussions.
-3. **Copilot provider tips** — Groq free tier, Ollama local setup, Azure deployment naming.
+1. **Welcome** — [README](../README.md), [CONTRIBUTING](../CONTRIBUTING.md), [Code of Conduct](../CODE_OF_CONDUCT.md). Install from the [Microsoft Store](https://apps.microsoft.com/detail/9nwqjz08pqzd).
+2. **How we triage** — bugs and features are issues. Open-ended talk stays here. `main` changes through a pull request, and the CI job `build-and-test` must pass first.
+3. **Rex** — an API key stays on the machine. Do not paste keys in a public thread. Ollama works offline.
 
-## Moderation tips
-
-- Move actionable bugs from Discussions → Issues.
-- Close duplicate Ideas by linking the canonical issue.
-- Keep API-key troubleshooting guidance: never paste keys in public threads.
+Move a bug from Discussions to an issue. Close a duplicate idea by linking the issue that tracks it.

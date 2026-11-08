@@ -171,16 +171,25 @@ public sealed class WorkspaceService : IWorkspaceService
 
     private void LoadRecent()
     {
-        if (!File.Exists(_recentPath))
-        {
-            _recentProjects = [];
-            return;
-        }
-
         try
         {
-            string json = File.ReadAllText(_recentPath);
-            _recentProjects = JsonSerializer.Deserialize<List<RecentProjectEntry>>(json) ?? [];
+            var database = ReportExpert.Storage.RexDatabase.Default;
+            const string imported = ReportExpert.Storage.RexStorageKeys.LegacyFilesImported + ".recent-projects";
+            if (!database.HasKey(imported))
+            {
+                // One-time import of recent-projects.json written by REX 3.0 and earlier.
+                if (File.Exists(_recentPath))
+                {
+                    var legacy = JsonSerializer.Deserialize<List<RecentProjectEntry>>(File.ReadAllText(_recentPath)) ?? [];
+                    database.ReplaceRecentItems(ReportExpert.Storage.RexStorageKeys.RecentProject, legacy.Select(p => new ReportExpert.Storage.RecentItem(p.Path, p.Name, p.LastOpenedUtc)));
+                }
+
+                database.SetJson(imported, DateTimeOffset.UtcNow);
+            }
+
+            _recentProjects = database.RecentItems(ReportExpert.Storage.RexStorageKeys.RecentProject)
+                .Select(item => new RecentProjectEntry { Path = item.Path, Name = item.Name, LastOpenedUtc = item.OpenedUtc })
+                .ToList();
             _recentProjects = _recentProjects
                 .Where(p => !string.IsNullOrWhiteSpace(p.Path) && Directory.Exists(p.Path))
                 .ToList();
@@ -191,9 +200,8 @@ public sealed class WorkspaceService : IWorkspaceService
         }
     }
 
-    private void SaveRecent()
-    {
-        string json = JsonSerializer.Serialize(_recentProjects, JsonOptions);
-        File.WriteAllText(_recentPath, json);
-    }
+    private void SaveRecent() =>
+        ReportExpert.Storage.RexDatabase.Default.ReplaceRecentItems(
+            ReportExpert.Storage.RexStorageKeys.RecentProject,
+            _recentProjects.Select(p => new ReportExpert.Storage.RecentItem(p.Path, p.Name, p.LastOpenedUtc)));
 }

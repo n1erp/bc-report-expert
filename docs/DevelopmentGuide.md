@@ -10,7 +10,7 @@
 ## Clone and build
 
 ```bash
-git clone https://github.com/taher-el-mehdi/bc-report-expert.git
+git clone https://github.com/n1erp/bc-report-expert.git
 cd bc-report-expert
 dotnet restore ReportExpert.slnx
 dotnet build ReportExpert.slnx
@@ -56,14 +56,13 @@ Set the startup project to `ReportExpert.App` in Visual Studio.
 
 ```bash
 dotnet test ReportExpert.slnx
-dotnet run --project tests/ReportExpert.LayoutSmoke -- --home test-reports
 ```
 
 ## Scripts
 
 | Script | Purpose |
 |--------|---------|
-| `scripts/build-release.ps1` | Self-contained publish, ZIP, installer, optional MSIX (`v1.0 Marmoset`) |
+| `scripts/build-release.ps1` | Self-contained publish, ZIP, installer, optional MSIX (`rex-2.0-baboon`) |
 | `scripts/generate-logo-assets.py` | Logo / ICO generation |
 | `scripts/update-al-grammar.ps1` | Refresh AL TextMate grammar |
 

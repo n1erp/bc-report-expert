@@ -1,0 +1,29 @@
+<UserControl x:Class="ReportExpert.App.Reports.ReportOutlineView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:design="clr-namespace:ReportExpert.Reporting.Design;assembly=ReportExpert.Reporting.Design"
+             TextElement.FontFamily="{StaticResource Safi.FontFamily}">
+    <!-- Report items outline (Visual Studio "Document Outline"), shown in the shared side panel. -->
+    <UserControl.Resources>
+        <HierarchicalDataTemplate DataType="{x:Type design:DesignExplorerNode}" ItemsSource="{Binding Children}">
+            <StackPanel Orientation="Horizontal" Margin="0,2">
+                <TextBlock Text="{Binding Name}" Style="{StaticResource Safi.Body}" />
+                <Border Style="{StaticResource Safi.Chip}" Margin="8,0,0,0">
+                    <TextBlock Text="{Binding Kind}" Style="{StaticResource Safi.Caption}" FontSize="11" />
+                </Border>
+            </StackPanel>
+        </HierarchicalDataTemplate>
+    </UserControl.Resources>
+    <DockPanel Margin="6,8,6,6">
+        <TextBlock DockPanel.Dock="Top" Text="{Binding LayoutSummary}" Style="{StaticResource Safi.Caption}"
+                   TextWrapping="Wrap" Margin="6,0,6,8" />
+        <TreeView ItemsSource="{Binding Explorer}" BorderThickness="0" Background="Transparent"
+                  SelectedItemChanged="OnSelected" ToolTip="Click an item to select it in the designer">
+            <TreeView.ItemContainerStyle>
+                <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                    <Setter Property="IsExpanded" Value="True" />
+                </Style>
+            </TreeView.ItemContainerStyle>
+        </TreeView>
+    </DockPanel>
+</UserControl>

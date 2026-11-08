@@ -24,7 +24,7 @@ public sealed class ThemeService : IThemeService
             return;
         }
 
-        ApplicationTheme appTheme = theme == ThemeNames.Dark
+        ApplicationTheme appTheme = ThemeNames.IsDarkBase(theme) == true
             ? ApplicationTheme.Dark
             : ApplicationTheme.Light;
         ApplicationThemeManager.Apply(appTheme);

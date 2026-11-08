@@ -6,9 +6,8 @@ Describes how Report Expert loads RDLC metadata and prepares data for PDF render
 
 | UI | Type | Role |
 |----|------|------|
-| Home layout canvas | `RdlcVisualLayoutBuilder` | Visual tablix / field overview |
-| Home **Preview** | `RdlcPreviewWindow` + `RdlcPreviewDialogViewModel` | Configure data + generate PDF |
-| Legacy tab host | `PreviewView` / `PreviewViewModel` | Kept for LayoutSmoke / reuse — not in shell nav |
+| Report center designer | `ReportCenterViewModel` | Edits and previews through the report engine |
+| Home **Preview** | `RdlcPreviewWindow` | Workspace preview: configure data and generate PDF |
 
 ## Metadata
 

@@ -1,0 +1,47 @@
+<UserControl x:Class="ReportExpert.App.Reports.ReportPreviewPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+             TextElement.FontFamily="{StaticResource Safi.FontFamily}">
+    <!-- The report preview in the shared side panel (activity bar: Preview). -->
+    <DockPanel>
+        <!-- Toolbar: parameters on the left, one Export menu on the right (F5 renders again). -->
+        <Border DockPanel.Dock="Top" Padding="12,8" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Safi.DividerBrush}" Background="{DynamicResource Safi.SurfaceBrush}">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button x:Name="ExportButton" Style="{StaticResource Safi.PrimaryButton}" Click="OnExportMenu" Margin="0"
+                            ToolTip="Save the report as PDF, Excel or Word">
+                        <StackPanel Orientation="Horizontal">
+                            <ui:SymbolIcon Symbol="ArrowDownload24" FontSize="16" Margin="0,0,6,0" />
+                            <TextBlock Text="Export" />
+                            <ui:SymbolIcon Symbol="ChevronDown16" FontSize="11" Margin="8,1,0,0" />
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource Safi.OutlinedButton}" Click="OnPopOut" ToolTip="Open the preview in its own window" Margin="8,0,0,0">
+                        <ui:SymbolIcon Symbol="Open24" FontSize="16" />
+                    </Button>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="FilterButton" Style="{StaticResource Safi.OutlinedButton}" Click="OnFilter">
+                        <StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="Filter24" FontSize="16" Margin="0,0,6,0" /><TextBlock Text="Parameters" /></StackPanel>
+                    </Button>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Status -->
+        <Border DockPanel.Dock="Bottom" Padding="12,5" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource Safi.DividerBrush}">
+            <DockPanel>
+                <ProgressBar x:Name="Busy" DockPanel.Dock="Right" Width="120" Height="4" IsIndeterminate="True" Visibility="Collapsed" />
+                <TextBlock x:Name="Status" FontSize="12" Foreground="{DynamicResource Safi.TextSecondaryBrush}" TextTrimming="CharacterEllipsis" />
+            </DockPanel>
+        </Border>
+
+        <Grid>
+            <wv2:WebView2 x:Name="PdfViewer" />
+            <TextBlock x:Name="Fallback" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="520" TextAlignment="Center"
+                       Foreground="{DynamicResource Safi.TextSecondaryBrush}" />
+        </Grid>
+    </DockPanel>
+</UserControl>

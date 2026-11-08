@@ -6,6 +6,9 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="ReportViewerCore.NETCore" />
+    <!-- ReportViewerCore brings vulnerable 10.0.0 cryptography packages. Pin the patched builds. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
+    <PackageReference Include="System.Security.Cryptography.Xml" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ReportExpert.Core\ReportExpert.Core.csproj" />

@@ -12,6 +12,22 @@ public static class AppConstants
     /// <summary>Folder name under <c>%AppData%</c> for user settings and caches.</summary>
     public const string AppDataFolderName = "ReportExpert";
 
+    /// <summary>
+    /// The friendly version shown in the UI, read from the entry assembly's informational version
+    /// (set in Directory.Build.props, for example <c>rex-2.0-baboon</c>).
+    /// </summary>
+    public static string ApplicationVersionDisplay
+    {
+        get
+        {
+            var assembly = System.Reflection.Assembly.GetEntryAssembly() ?? typeof(AppConstants).Assembly;
+            var version = System.Reflection.CustomAttributeExtensions
+                .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(assembly)?.InformationalVersion ?? "";
+            var plus = version.IndexOf('+', StringComparison.Ordinal);
+            return plus >= 0 ? version[..plus] : version;
+        }
+    }
+
     /// <summary>Primary application settings file (theme, preview defaults).</summary>
     public const string SettingsFileName = "settings.json";
 
@@ -70,4 +86,30 @@ public static class ThemeNames
     public const string System = "System";
     public const string Light = "Light";
     public const string Dark = "Dark";
+
+    /// <summary>Ocean-inspired contrast theme (dark base).</summary>
+    public const string Aquatic = "Aquatic";
+
+    /// <summary>Warm, sand-inspired contrast theme (light base).</summary>
+    public const string Desert = "Desert";
+
+    /// <summary>Calm twilight contrast theme (dark base).</summary>
+    public const string Dusk = "Dusk";
+
+    /// <summary>Deep night-inspired contrast theme (dark base).</summary>
+    public const string NightSky = "Night Sky";
+
+    /// <summary>Every theme, in the order the settings list shows them.</summary>
+    public static readonly string[] All = [System, Light, Dark, Aquatic, Desert, Dusk, NightSky];
+
+    /// <summary>
+    /// Whether a theme is drawn on the dark control base. Null for <see cref="System"/>, which follows Windows.
+    /// Unknown names fall back to light.
+    /// </summary>
+    public static bool? IsDarkBase(string? theme) => theme switch
+    {
+        System or null or "" => null,
+        Dark or Aquatic or Dusk or NightSky => true,
+        _ => false,
+    };
 }

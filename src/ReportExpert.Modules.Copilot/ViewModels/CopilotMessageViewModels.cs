@@ -28,8 +28,13 @@ public partial class ChatMessageViewModel : CopilotMessageViewModel
     public bool IsThinking =>
         !IsUser && Content is "Thinking..." or "Thinking…";
 
-    /// <summary>Whether the markdown body should be shown (hide while thinking).</summary>
-    public bool ShowMarkdown => !IsThinking;
+    /// <summary>Whether the markdown body should be shown (hide while thinking or when only files were sent).</summary>
+    public bool ShowMarkdown => !IsThinking && Content.Length > 0;
+
+    /// <summary>Files and images sent with a user message.</summary>
+    public IReadOnlyList<ChatAttachmentViewModel> Attachments { get; init; } = [];
+
+    public bool HasAttachments => Attachments.Count > 0;
 }
 
 /// <summary>Where a tool call has got to.</summary>

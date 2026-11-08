@@ -72,8 +72,7 @@ public sealed class CopilotChatHistoryStore
                 UpdatedUtc = DateTime.UtcNow,
                 Messages = messages
                     .Where(m => !string.IsNullOrWhiteSpace(m.Content) &&
-                                m.Content is not "Thinking..." &&
-                                !m.Content.StartsWith("Error:", StringComparison.Ordinal))
+                                m.Content is not ("Thinking..." or "Thinking…"))
                     .Select(m => new CopilotChatMessageDto { IsUser = m.IsUser, Content = m.Content })
                     .ToList()
             };

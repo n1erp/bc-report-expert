@@ -34,7 +34,7 @@ public sealed class OpenAiCompatibleClient : IChatCompletionClient
 
         var settings = _settingsService.Settings;
         if (settings.Provider != CopilotProvider.Ollama && string.IsNullOrWhiteSpace(settings.ApiKey))
-            throw new InvalidOperationException("No API key configured. Open Copilot settings and enter your key.");
+            throw new InvalidOperationException($"No API key is set for {CopilotProviderDefaults.DisplayName(settings.Provider)}. Add one in Settings › Copilot AI.");
 
         string url = BuildCompletionsUrl(settings);
 
@@ -66,25 +66,58 @@ public sealed class OpenAiCompatibleClient : IChatCompletionClient
         // OpenRouter ranks apps that identify themselves; optional but improves rate limits.
         if (settings.Provider == CopilotProvider.OpenRouter)
         {
-            message.Headers.TryAddWithoutValidation("HTTP-Referer", "https://github.com/taher-el-mehdi/bc-report-expert");
+            message.Headers.TryAddWithoutValidation("HTTP-Referer", "https://github.com/n1erp/bc-report-expert");
             message.Headers.TryAddWithoutValidation("X-Title", "Report Expert");
         }
 
         message.Content = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
 
-        using var response = await Http.SendAsync(message, cancellationToken);
-        string body = await response.Content.ReadAsStringAsync(cancellationToken);
+        var (status, success, body) = await SendAsync(message, cancellationToken);
 
-        if (!response.IsSuccessStatusCode)
+        // Reasoning models (OpenAI GPT-5+/o-series, some Gemini and Claude settings) only accept the
+        // default temperature; send the request again without it rather than failing the turn.
+        if (!success && status == 400 && (ProviderProbe.ErrorText(body) ?? body).Contains("temperature", StringComparison.OrdinalIgnoreCase))
         {
-            string detail = TryExtractError(body) ?? body;
-            throw new HttpRequestException($"{CopilotProviderDefaults.DisplayName(settings.Provider)} API error ({(int)response.StatusCode}): {detail}");
+            payload.Remove("temperature");
+            using var retry = new HttpRequestMessage(HttpMethod.Post, url);
+            foreach (var header in message.Headers)
+                retry.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            retry.Content = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
+            (status, success, body) = await SendAsync(retry, cancellationToken);
+        }
+
+        if (!success)
+        {
+            string detail = ProviderProbe.ErrorText(body) ?? body;
+            if (ProviderProbe.Classify(status, detail) == ProbeOutcome.ModelUnavailable)
+            {
+                detail = $"The model '{settings.Model}' is not available for this key (it may be retired or not open to your account). " +
+                         $"Open Settings › AI providers and press Test: Rex picks a model that works. Provider said: {detail}";
+            }
+
+            // Most failures with an image attached come from a text-only model.
+            string hint = request.Messages.Any(m => m.Images is { Count: > 0 })
+                ? $"\n\nIf the model '{settings.Model}' does not accept images, pick a vision-capable one " +
+                  "(for example Gemini 2.5 Flash, GPT-4o, or Claude Sonnet) or remove the image."
+                : string.Empty;
+            throw new CopilotApiException(
+                settings.Provider,
+                status,
+                detail,
+                $"{CopilotProviderDefaults.DisplayName(settings.Provider)} API error ({status}): {detail}{hint}");
         }
 
         return ParseCompletion(body);
     }
 
-    private static JsonArray BuildMessages(IReadOnlyList<ChatMessage> messages)
+    private static async Task<(int Status, bool Success, string Body)> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        using var response = await Http.SendAsync(request, cancellationToken);
+        string body = await response.Content.ReadAsStringAsync(cancellationToken);
+        return ((int)response.StatusCode, response.IsSuccessStatusCode, body);
+    }
+
+    internal static JsonArray BuildMessages(IReadOnlyList<ChatMessage> messages)
     {
         var array = new JsonArray();
 
@@ -93,7 +126,7 @@ public sealed class OpenAiCompatibleClient : IChatCompletionClient
             var node = new JsonObject
             {
                 ["role"] = message.Role,
-                ["content"] = message.Content
+                ["content"] = BuildContent(message)
             };
 
             if (message.ToolCallId is not null)
@@ -108,7 +141,7 @@ public sealed class OpenAiCompatibleClient : IChatCompletionClient
 
                 foreach (var call in calls)
                 {
-                    callArray.Add(new JsonObject
+                    var callNode = new JsonObject
                     {
                         ["id"] = call.Id,
                         ["type"] = "function",
@@ -117,7 +150,13 @@ public sealed class OpenAiCompatibleClient : IChatCompletionClient
                             ["name"] = call.Name,
                             ["arguments"] = call.ArgumentsJson
                         }
-                    });
+                    };
+
+                    // Gemini's thought signature must be returned exactly as received.
+                    if (call.ExtraContentJson is { Length: > 0 } extra)
+                        callNode["extra_content"] = JsonNode.Parse(extra);
+
+                    callArray.Add(callNode);
                 }
 
                 node["tool_calls"] = callArray;
@@ -127,6 +166,31 @@ public sealed class OpenAiCompatibleClient : IChatCompletionClient
         }
 
         return array;
+    }
+
+    /// <summary>
+    /// A plain string, or — when the message carries images — the multimodal part list every
+    /// OpenAI-compatible provider accepts: a text part followed by one <c>image_url</c> part per image.
+    /// </summary>
+    private static JsonNode BuildContent(ChatMessage message)
+    {
+        if (message.Images is not { Count: > 0 } images)
+            return JsonValue.Create(message.Content)!;
+
+        var parts = new JsonArray();
+        if (message.Content.Length > 0)
+            parts.Add(new JsonObject { ["type"] = "text", ["text"] = message.Content });
+
+        foreach (var image in images)
+        {
+            parts.Add(new JsonObject
+            {
+                ["type"] = "image_url",
+                ["image_url"] = new JsonObject { ["url"] = image.DataUrl }
+            });
+        }
+
+        return parts;
     }
 
     private static JsonArray BuildTools(IReadOnlyList<ChatTool> tools)
@@ -190,7 +254,15 @@ public sealed class OpenAiCompatibleClient : IChatCompletionClient
                 ? idElement.GetString() ?? string.Empty
                 : string.Empty;
 
-            calls.Add(new ChatToolCall(id, name, arguments.Length == 0 ? "{}" : arguments));
+            string? extraContent = call.TryGetProperty("extra_content", out var extraElement) &&
+                                   extraElement.ValueKind == JsonValueKind.Object
+                ? extraElement.GetRawText()
+                : null;
+
+            calls.Add(new ChatToolCall(id, name, arguments.Length == 0 ? "{}" : arguments)
+            {
+                ExtraContentJson = extraContent
+            });
         }
 
         return new ChatCompletion(content, calls);
@@ -210,20 +282,19 @@ public sealed class OpenAiCompatibleClient : IChatCompletionClient
 
         return $"{baseUrl}/chat/completions";
     }
+}
 
-    private static string? TryExtractError(string body)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(body);
-            if (doc.RootElement.TryGetProperty("error", out var error))
-                return error.TryGetProperty("message", out var message) ? message.GetString() : error.ToString();
-        }
-        catch (JsonException)
-        {
-            // Body was not JSON or lacked an error envelope — caller shows raw body.
-        }
+/// <summary>A provider answered with an error status.</summary>
+public sealed class CopilotApiException(CopilotProvider provider, int statusCode, string detail, string message)
+    : HttpRequestException(message)
+{
+    public CopilotProvider Provider { get; } = provider;
 
-        return null;
-    }
+    public int Status { get; } = statusCode;
+
+    /// <summary>The provider's own error text.</summary>
+    public string Detail { get; } = detail;
+
+    /// <summary>The provider refused the key itself (as opposed to a bad request or an outage).</summary>
+    public bool IsKeyRejected => Status is 401 or 403;
 }

@@ -24,7 +24,8 @@ Briefly describe what this PR changes and why. Keep the scope focused on one con
 ## Checklist
 
 - [ ] Tests added or updated (or N/A with reason)
-- [ ] `dotnet test ReportExpert.slnx` passes
+- [ ] `dotnet test ReportExpert.slnx` passes locally
+- [ ] CI job `build-and-test` is green on this pull request (required before merge to `main`)
 - [ ] Documentation updated (`docs/`, README) if behavior or architecture changed
 - [ ] No secrets / API keys / machine-local paths committed
 - [ ] XML docs added for new public APIs

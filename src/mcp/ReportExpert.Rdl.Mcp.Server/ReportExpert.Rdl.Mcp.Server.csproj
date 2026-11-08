@@ -16,8 +16,8 @@
     <PackageTags>mcp;rdlc;rdl;reporting;ai</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/taher-el-mehdi/bc-report-expert</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/taher-el-mehdi/bc-report-expert</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/n1erp/bc-report-expert</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/n1erp/bc-report-expert</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
@@ -28,6 +28,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ReportExpert.Rdl.Core\ReportExpert.Rdl.Core.csproj" />
+    <ProjectReference Include="..\..\ReportExpert.Reporting.Design\ReportExpert.Reporting.Design.csproj" />
   </ItemGroup>
 
   <ItemGroup>

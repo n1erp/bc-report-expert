@@ -2,13 +2,14 @@ using System.IO;
 using System.Text.Json;
 using ReportExpert.Common;
 using ReportExpert.Modules.Preview.Models;
+using ReportExpert.Storage;
 
 namespace ReportExpert.Modules.Preview.Services;
 
 /// <summary>
-/// Loads and saves <see cref="AppSettings"/> from
-/// <c>%AppData%\ReportExpert\settings.json</c>.
-/// Corrupt files reset to defaults so the app can still start.
+/// Loads and saves <see cref="AppSettings"/> in the REX SQLite database (<see cref="RexDatabase"/>).
+/// A <c>settings.json</c> from an older REX is imported the first time. Unreadable data resets to
+/// defaults so the app can still start.
 /// </summary>
 public sealed class SettingsService
 {
@@ -27,16 +28,17 @@ public sealed class SettingsService
 
     public void Load()
     {
-        if (!File.Exists(_settingsPath))
-        {
-            _settings = new AppSettings();
-            return;
-        }
-
         try
         {
-            string json = File.ReadAllText(_settingsPath);
-            _settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+            var database = RexDatabase.Default;
+            if (!database.HasKey(RexStorageKeys.AppSettings) && File.Exists(_settingsPath))
+            {
+                // One-time import of the settings file written by REX 3.0 and earlier.
+                var legacy = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(_settingsPath)) ?? new AppSettings();
+                database.SetJson(RexStorageKeys.AppSettings, legacy);
+            }
+
+            _settings = database.GetJson<AppSettings>(RexStorageKeys.AppSettings) ?? new AppSettings();
         }
         catch (Exception)
         {
@@ -45,9 +47,5 @@ public sealed class SettingsService
         }
     }
 
-    public void Save()
-    {
-        string json = JsonSerializer.Serialize(_settings, JsonOptions);
-        File.WriteAllText(_settingsPath, json);
-    }
+    public void Save() => RexDatabase.Default.SetJson(RexStorageKeys.AppSettings, _settings);
 }

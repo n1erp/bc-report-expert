@@ -10,6 +10,9 @@
 .PARAMETER SkipMsix
   Skip MSIX packaging.
 
+.PARAMETER SkipPublish
+  Do not delete artifacts or republish. Package the MSIX from artifacts\publish\win-x64.
+
 .PARAMETER SkipSign
   Produce an unsigned .msix (Partner Center can still accept it for Store upload).
 
@@ -31,12 +34,13 @@
 param(
     [switch]$SkipInstaller,
     [switch]$SkipMsix,
+    [switch]$SkipPublish,
     [switch]$SkipSign,
     # Identity Name is Partner Center "Package/Identity name" (not the Package Family Name suffix).
     [string]$PackageIdentityName = 'TAHERELMEHDI.ReportExpert',
     # Store publisher is always CN={Partner Center Publisher ID GUID}.
     [string]$Publisher = 'CN=3F008BBC-A619-4112-B567-6325DD4E8CD7',
-    [string]$PublisherDisplayName = 'TAHER El Mehdi'
+    [string]$PublisherDisplayName = 'TAHER EL MEHDI'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -45,7 +49,7 @@ Set-Location $Root
 
 $SdkBuildToolsVersion = '10.0.26100.1742'
 $AppDisplayName = 'Report Expert'
-$AppDescription = 'Desktop toolkit for RDLC report development — preview, Copilot edits, and Business Central report gallery.'
+$AppDescription = 'RDLC designer for Business Central. Edit layouts, preview, and export.'
 
 function Get-MsBuildProperty {
     param(
@@ -329,46 +333,59 @@ $msixPath = Join-Path $msixDir $MsixFileName
 $zipPath = Join-Path $Root "artifacts\ReportExpert-$ReleaseLabel-win-x64.zip"
 $toolsCache = Join-Path $Root 'artifacts\tools'
 $manifestTemplate = Join-Path $Root 'installer\msix\AppxManifest.xml'
-$logoSource = Join-Path $Root 'Assets\app-logo.png'
-# Prefer packaging Assets copy; fall back to repo-root logo.png
-if (-not (Test-Path $logoSource)) {
-    $logoSource = Join-Path $Root 'logo.png'
-}
+$logoCandidates = @(
+    (Join-Path $Root 'Assets\v2.0 Baboon\store\store-icon-300x300.png'),
+    (Join-Path $Root 'Assets\v2.0 Baboon\logo.png'),
+    (Join-Path $Root 'Assets\app-logo.png'),
+    (Join-Path $Root 'logo.png')
+)
+$logoSource = $logoCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
 
 Write-Host "==> Report Expert release build $ReleaseLabel (assembly $Version)" -ForegroundColor Cyan
 
-if (Test-Path (Join-Path $Root 'artifacts')) {
-    Get-ChildItem (Join-Path $Root 'artifacts') -Force |
-        Where-Object { $_.Name -ne 'tools' } |
-        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+if ($SkipPublish) {
+    if (-not (Test-Path (Join-Path $publishDir 'ReportExpert.exe'))) {
+        throw "Published app not found: $publishDir. Run without -SkipPublish first."
+    }
+    Write-Host '==> Skipping publish (-SkipPublish). Using existing win-x64 output.' -ForegroundColor Yellow
 }
+else {
+    if (Test-Path (Join-Path $Root 'artifacts')) {
+        Get-ChildItem (Join-Path $Root 'artifacts') -Force |
+            Where-Object { $_.Name -ne 'tools' } |
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
 New-Item -ItemType Directory -Force -Path $publishDir, $installerDir, $msixDir | Out-Null
 
-Write-Host '==> dotnet publish (self-contained win-x64)...' -ForegroundColor Cyan
-dotnet publish $csproj `
-    -c Release `
-    -r win-x64 `
-    --self-contained true `
-    -p:PublishReadyToRun=true `
-    -o $publishDir
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+if (-not $SkipPublish) {
+    Write-Host '==> dotnet publish (self-contained win-x64)...' -ForegroundColor Cyan
+    dotnet publish $csproj `
+        -c Release `
+        -r win-x64 `
+        --self-contained true `
+        -p:PublishReadyToRun=true `
+        -o $publishDir
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-$versionStamp = @(
-    "Report Expert $ReleaseLabel"
-    "Assembly version: $Version"
-) -join [Environment]::NewLine
-Set-Content -Path (Join-Path $publishDir 'VERSION.txt') -Value $versionStamp -Encoding utf8
+    $versionStamp = @(
+        "Report Expert $ReleaseLabel"
+        "Assembly version: $Version"
+    ) -join [Environment]::NewLine
+    Set-Content -Path (Join-Path $publishDir 'VERSION.txt') -Value $versionStamp -Encoding utf8
 
-Write-Host '==> Creating portable ZIP...' -ForegroundColor Cyan
-if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+    Write-Host '==> Creating portable ZIP...' -ForegroundColor Cyan
+    if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
 
-# Stage a copy so Compress-Archive does not race with AV / leftover file locks on publish output.
-$zipStage = Join-Path $Root 'artifacts\zip-stage'
-if (Test-Path $zipStage) { Remove-Item $zipStage -Recurse -Force }
-New-Item -ItemType Directory -Force -Path $zipStage | Out-Null
-Copy-Item -Path (Join-Path $publishDir '*') -Destination $zipStage -Recurse -Force
-Compress-Archive -Path (Join-Path $zipStage '*') -DestinationPath $zipPath
-Remove-Item $zipStage -Recurse -Force -ErrorAction SilentlyContinue
+    # Stage a copy so Compress-Archive does not race with AV / leftover file locks on publish output.
+    $zipStage = Join-Path $Root 'artifacts\zip-stage'
+    if (Test-Path $zipStage) { Remove-Item $zipStage -Recurse -Force }
+    New-Item -ItemType Directory -Force -Path $zipStage | Out-Null
+    Copy-Item -Path (Join-Path $publishDir '*') -Destination $zipStage -Recurse -Force
+    Compress-Archive -Path (Join-Path $zipStage '*') -DestinationPath $zipPath
+    Remove-Item $zipStage -Recurse -Force -ErrorAction SilentlyContinue
+}
 
 $isccCandidates = @(
     "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
@@ -400,9 +417,10 @@ else {
     if (-not (Test-Path $manifestTemplate)) {
         throw "MSIX manifest template not found: $manifestTemplate"
     }
-    if (-not (Test-Path $logoSource)) {
-        throw "Logo not found: $logoSource"
+    if (-not $logoSource) {
+        throw "Logo not found. Checked: $($logoCandidates -join '; ')"
     }
+    Write-Host "==> MSIX logo: $logoSource" -ForegroundColor Cyan
 
     Write-Host '==> Preparing MSIX package layout...' -ForegroundColor Cyan
     if (Test-Path $msixLayout) { Remove-Item $msixLayout -Recurse -Force }
@@ -468,7 +486,5 @@ Write-Host "  3. Rebuild, then upload $MsixFileName under Packages."
 Write-Host "  4. Each upload must use a new Identity Version (currently $MsixVersion). Remove any older package with the same full name from the submission first."
 Write-Host "  5. runFullTrust requires Store declaration/approval for full-trust desktop apps."
 Write-Host ''
-Write-Host 'GitHub Releases:' -ForegroundColor Green
-Write-Host "  1. $InstallerFileName  (primary download)"
-Write-Host "  2. ReportExpert-$ReleaseLabel-win-x64.zip (portable)"
-Write-Host "  3. $MsixFileName (Microsoft Store / sideload)"
+Write-Host 'Microsoft Store: https://apps.microsoft.com/detail/9nwqjz08pqzd' -ForegroundColor Green
+Write-Host "  Upload $MsixFileName. Local artifacts also include $InstallerFileName and the portable ZIP."

@@ -224,6 +224,7 @@ public partial class PreviewViewModel : ObservableObject
         {
             ShowSnackbar("Preview refresh failed", ex.InnerException?.Message ?? ex.Message, ControlAppearance.Danger);
             StatusMessage = $"Preview failed: {ex.InnerException?.Message ?? ex.Message}";
+            ReportExpert.Common.ErrorReporting.Show(ex, "Refresh preview", "Preview failed", EngineMessage(ex));
         }
     }
 
@@ -650,9 +651,21 @@ public partial class PreviewViewModel : ObservableObject
                 format,
                 dlg.FileName);
 
+            RememberExportFolder(dlg.FileName);
             ShowSnackbar("Export complete", $"Exported to {Path.GetFileName(dlg.FileName)}", ControlAppearance.Success);
             StatusMessage = $"Exported {format.DisplayName()} successfully.";
         });
+    }
+
+    /// <summary>The next export dialog opens where the last export went.</summary>
+    private void RememberExportFolder(string fileName)
+    {
+        string? folder = Path.GetDirectoryName(fileName);
+        if (string.IsNullOrEmpty(folder) || string.Equals(folder, _settingsService.Settings.DefaultExportFolder, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        _settingsService.Settings.DefaultExportFolder = folder;
+        _settingsService.Save();
     }
 
     private async Task ExportGeneratedDataAsync(string format)
@@ -705,11 +718,20 @@ public partial class PreviewViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            await DialogService.ShowErrorAsync(
-                _getOwnerWindow(),
-                "Operation failed",
-                ex.InnerException?.Message ?? ex.Message,
-                exception: ex);
+            if (ReportExpert.Common.ErrorReporting.Handler is not null)
+            {
+                // The shared error dialog: message, details for the developer, Copy details and Report a bug.
+                ReportExpert.Common.ErrorReporting.Show(ex, message.TrimEnd('.', '…', ' '), "Operation failed", EngineMessage(ex));
+            }
+            else
+            {
+                await DialogService.ShowErrorAsync(
+                    _getOwnerWindow(),
+                    "Operation failed",
+                    ex.InnerException?.Message ?? ex.Message,
+                    exception: ex);
+            }
+
             StatusMessage = "Error";
         }
         finally
@@ -740,11 +762,11 @@ public partial class PreviewViewModel : ObservableObject
     public void ApplyTheme()
     {
         string theme = _settingsService.Settings.Theme;
-        ApplicationTheme appTheme = theme switch
+        ApplicationTheme appTheme = ThemeNames.IsDarkBase(theme) switch
         {
-            ThemeNames.Dark => ApplicationTheme.Dark,
-            ThemeNames.Light => ApplicationTheme.Light,
-            _ => ApplicationThemeManager.GetAppTheme()
+            true => ApplicationTheme.Dark,
+            false => ApplicationTheme.Light,
+            null => ApplicationThemeManager.GetAppTheme()
         };
 
         if (theme == ThemeNames.System)
@@ -754,5 +776,23 @@ public partial class PreviewViewModel : ObservableObject
 
         EditorServicesLocator.ThemeService?.NotifyThemeChanged();
         EditorServicesLocator.SyntaxHighlighting?.RefreshAllThemes();
+    }
+
+    /// <summary>
+    /// The report engine's own words: the innermost messages of the exception chain, without the generic
+    /// "An error occurred during local report processing." wrappers.
+    /// </summary>
+    private static string EngineMessage(Exception exception)
+    {
+        var parts = new List<string>();
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+        {
+            var text = current.Message.Trim();
+            if (text.Length == 0 || text.StartsWith("An error occurred during", StringComparison.Ordinal) || text.StartsWith("An error has occurred during", StringComparison.Ordinal) || parts.Contains(text))
+                continue;
+            parts.Add(text);
+        }
+
+        return parts.Count == 0 ? exception.Message : string.Join(" ", parts);
     }
 }

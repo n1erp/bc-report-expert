@@ -41,6 +41,15 @@ public partial class CopilotViewModel : ObservableObject, IToolApprovalService
         - When you suggest a change, show a short before/after XML snippet the user can apply themselves in the designer.
         - Be concise and practical. Prefer short explanations over long dumps.
         - If no report is loaded, say so and answer generally about RDLC.
+
+        Attachments:
+        - The user may attach files inside <attached_file name=… type=…> tags (RDLC, XML, JSON, TXT, AL,
+          PDF text…) and images (screenshots of reports, designs, error messages, reference layouts).
+          Read them carefully and use them as context. An attached file is not the open report unless
+          the user says so.
+        - When an image shows a report or a design, describe what you see that matters for the
+          question, and relate it to the open layout (item names, columns, groups).
+        - When an image shows an error, read the message text and explain the cause and the fix.
         """;
 
     private const string AgentSystemPrompt =
@@ -71,6 +80,17 @@ public partial class CopilotViewModel : ObservableObject, IToolApprovalService
         - NEVER claim you changed the report unless a mutating tool returned ok=true.
         - If the named item does not exist, say so and stop — do not invent a change.
         - Be concise. One or two sentences on what you did or what you need. No dump of the report.
+
+        Attachments:
+        - The user may attach files inside <attached_file name=… type=…> tags (RDLC, XML, JSON, TXT, AL,
+          PDF text…) and images (screenshots of reports, designs, error messages, reference layouts).
+          Read them carefully and use them as context. An attached file is not the open report unless
+          the user says so.
+        - When an image shows a report or a design, describe what you see that matters for the
+          question, and relate it to the open layout (item names, columns, groups).
+        - When an image shows an error, read the message text and explain the cause and the fix.
+                - To make the open report match an attached image or file, inspect the report with the read
+          tools first, then make the edits with the mutating tools as usual.
         """;
 
     private static readonly string DefaultWelcome =
@@ -88,23 +108,41 @@ public partial class CopilotViewModel : ObservableObject, IToolApprovalService
     private readonly CopilotChatHistoryStore _historyStore = new();
     private readonly IChatCompletionClient _client;
     private readonly Dictionary<string, ToolCallMessageViewModel> _toolCards = new(StringComparer.Ordinal);
+    private readonly VoiceDictationService _voice = new();
 
     private CancellationTokenSource? _turn;
     private string _reportPath = string.Empty;
     private string? _cachedSummary;
     private string? _cachedSummaryPath;
     private bool _autoApproveSession;
-    private bool _loadingSettings;
 
     public CopilotSettingsService CopilotSettingsService => _settingsService;
 
     public ObservableCollection<CopilotMessageViewModel> Messages { get; } = [];
 
-    /// <summary>Models for the current provider — selectable from the chat footer.</summary>
-    public ObservableCollection<AiModelOption> ModelOptions { get; } = [];
 
     [ObservableProperty]
     private string _inputText = string.Empty;
+
+    /// <summary>Files and images waiting to go with the next message, shown as chips above the input.</summary>
+    public ObservableCollection<ChatAttachmentViewModel> PendingAttachments { get; } = [];
+
+    public bool HasPendingAttachments => PendingAttachments.Count > 0;
+
+    /// <summary>Why the last attachment or voice action failed, shown under the input; empty when fine.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasComposerNotice))]
+    private string _composerNotice = string.Empty;
+
+    public bool HasComposerNotice => ComposerNotice.Length > 0;
+
+    /// <summary>Whether the microphone is open for dictation.</summary>
+    [ObservableProperty]
+    private bool _isRecording;
+
+    /// <summary>What the recognizer currently hears, before the phrase is final.</summary>
+    [ObservableProperty]
+    private string _voiceHypothesis = string.Empty;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(BusyStatusText))]
@@ -121,26 +159,40 @@ public partial class CopilotViewModel : ObservableObject, IToolApprovalService
     [ObservableProperty]
     private string _reportContextDisplay = "No report loaded";
 
-    [ObservableProperty]
-    private string _apiKey = string.Empty;
+    /// <summary>Every provider for the Rex picker: usable ones first, the rest disabled with a reason.</summary>
+    public ObservableCollection<ProviderChoiceViewModel> ProviderChoices { get; } = [];
 
+    /// <summary>Models of the active provider (kept for the footer and for callers that list them).</summary>
+    public ObservableCollection<AiModelOption> ModelOptions { get; } = [];
+
+    /// <summary>The active provider's name, such as "Google Gemini".</summary>
+    [ObservableProperty]
+    private string _providerDisplayName = string.Empty;
+
+    /// <summary>The active model's display name, such as "Gemini 2.5 Flash".</summary>
+    [ObservableProperty]
+    private string _modelDisplayName = string.Empty;
+
+    /// <summary>The active model id.</summary>
     [ObservableProperty]
     private string _model = string.Empty;
 
+    /// <summary>Whether a usable provider is selected, so messages can be sent.</summary>
     [ObservableProperty]
-    private string _baseUrl = string.Empty;
+    [NotifyPropertyChangedFor(nameof(NeedsProviderSetup))]
+    private bool _canChat;
 
+    public bool NeedsProviderSetup => !CanChat;
+
+    /// <summary>What to do to start chatting, shown when <see cref="CanChat"/> is false.</summary>
     [ObservableProperty]
-    private string _azureDeployment = string.Empty;
+    private string _setupMessage = string.Empty;
 
-    [ObservableProperty]
-    private string _selectedProvider = nameof(CopilotProvider.Groq);
+    /// <summary>Kept for callers that check for a key; true when Rex can send.</summary>
+    public bool HasApiKey => CanChat;
 
-    [ObservableProperty]
-    private string _providerDisplayName = CopilotProviderDefaults.DisplayName(CopilotProvider.Groq);
-
-    public bool HasApiKey =>
-        !string.IsNullOrWhiteSpace(_settingsService.Settings.ApiKey);
+    /// <summary>Shell wires this to open Settings at the Copilot AI section.</summary>
+    public Action? OpenSettingsRequested { get; set; }
 
     /// <summary>
     /// The MCP tools available, supplied by the shell. Null until a gateway has connected, and
@@ -175,8 +227,129 @@ public partial class CopilotViewModel : ObservableObject, IToolApprovalService
     public CopilotViewModel()
     {
         _client = new OpenAiCompatibleClient(_settingsService);
+        _settingsService.Saved += () => _ = InvokeOnUiAsync(() =>
+        {
+            LoadSettingsIntoUi();
+            return Task.CompletedTask;
+        });
+        PendingAttachments.CollectionChanged += (_, _) => OnPropertyChanged(nameof(HasPendingAttachments));
+        _voice.PhraseRecognized += phrase => _ = InvokeOnUiAsync(() =>
+        {
+            AppendDictation(phrase);
+            return Task.CompletedTask;
+        });
+        _voice.Hypothesis += guess => _ = InvokeOnUiAsync(() =>
+        {
+            VoiceHypothesis = guess;
+            return Task.CompletedTask;
+        });
+        _voice.Stopped += problem => _ = InvokeOnUiAsync(() =>
+        {
+            IsRecording = false;
+            VoiceHypothesis = string.Empty;
+            if (problem is not null)
+                ComposerNotice = problem;
+            return Task.CompletedTask;
+        });
         LoadSettingsIntoUi();
         ShowWelcome();
+    }
+
+    /// <summary>
+    /// Attaches files chosen in the dialog, dropped on the composer, or pasted. Files that cannot be
+    /// attached are named in <see cref="ComposerNotice"/>; the rest are added.
+    /// </summary>
+    public void AddAttachmentFiles(IEnumerable<string> paths)
+    {
+        var problems = new List<string>();
+        foreach (string path in paths)
+        {
+            if (!TryReserveSlot(problems))
+                break;
+
+            if (PendingAttachments.Any(a => string.Equals(a.Attachment.SourcePath, path, StringComparison.OrdinalIgnoreCase)))
+                continue;
+
+            try
+            {
+                PendingAttachments.Add(new ChatAttachmentViewModel(ChatAttachmentLoader.LoadFile(path)));
+            }
+            catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException)
+            {
+                problems.Add(exception is InvalidOperationException ? exception.Message : $"{Path.GetFileName(path)} could not be read.");
+            }
+        }
+
+        ComposerNotice = string.Join(" ", problems);
+    }
+
+    /// <summary>Attaches an image from the clipboard (a pasted screenshot).</summary>
+    public void AddPastedImage(System.Windows.Media.Imaging.BitmapSource image)
+    {
+        var problems = new List<string>();
+        if (!TryReserveSlot(problems))
+        {
+            ComposerNotice = string.Join(" ", problems);
+            return;
+        }
+
+        int number = PendingAttachments.Count(a => a.IsImage) + 1;
+        string name = $"screenshot-{DateTime.Now:HHmmss}{(number > 1 ? "-" + number : string.Empty)}.png";
+        PendingAttachments.Add(new ChatAttachmentViewModel(ChatAttachmentLoader.FromBitmap(image, name)));
+        ComposerNotice = string.Empty;
+    }
+
+    private bool TryReserveSlot(List<string> problems)
+    {
+        if (PendingAttachments.Count < ChatAttachmentLoader.MaxAttachments)
+            return true;
+
+        problems.Add($"Up to {ChatAttachmentLoader.MaxAttachments} attachments per message.");
+        return false;
+    }
+
+    [RelayCommand]
+    private void RemoveAttachment(ChatAttachmentViewModel? attachment)
+    {
+        if (attachment is not null)
+            PendingAttachments.Remove(attachment);
+        ComposerNotice = string.Empty;
+    }
+
+    /// <summary>Starts or stops English dictation into the input box.</summary>
+    [RelayCommand]
+    private void ToggleVoice()
+    {
+        if (IsRecording)
+        {
+            _voice.Stop();
+            return;
+        }
+
+        try
+        {
+            _voice.Start();
+            IsRecording = true;
+            ComposerNotice = string.Empty;
+        }
+        catch (InvalidOperationException exception)
+        {
+            ComposerNotice = exception.Message;
+        }
+    }
+
+    /// <summary>Adds a dictated phrase to the input, where the user can edit it before sending.</summary>
+    private void AppendDictation(string phrase)
+    {
+        VoiceHypothesis = string.Empty;
+        phrase = phrase.Trim();
+        if (phrase.Length == 0)
+            return;
+
+        // Sentences read better capitalised; the recognizer returns them in lower case.
+        phrase = char.ToUpperInvariant(phrase[0]) + phrase[1..];
+        string current = InputText.TrimEnd();
+        InputText = current.Length == 0 ? phrase : $"{current} {phrase}";
     }
 
     /// <summary>
@@ -248,7 +421,6 @@ public partial class CopilotViewModel : ObservableObject, IToolApprovalService
     public void ReloadSettings()
     {
         LoadSettingsIntoUi();
-        OnPropertyChanged(nameof(HasApiKey));
         OnPropertyChanged(nameof(IsAgentMode));
 
         // Turning agent mode off clears "Confirm always" so the next session asks again.
@@ -322,11 +494,29 @@ public partial class CopilotViewModel : ObservableObject, IToolApprovalService
     private async Task SendMessageAsync(string text)
     {
         text = text.Trim();
-        if (text.Length == 0 || IsBusy)
+        if ((text.Length == 0 && PendingAttachments.Count == 0) || IsBusy)
             return;
 
+        if (!CanChat)
+        {
+            ComposerNotice = SetupMessage;
+            return;
+        }
+
+        if (IsRecording)
+            _voice.Stop();
+
+        var attachments = PendingAttachments.ToList();
+        PendingAttachments.Clear();
+        ComposerNotice = string.Empty;
+
         InputText = string.Empty;
-        Messages.Add(new ChatMessageViewModel { IsUser = true, Content = text });
+
+        // The welcome text is only for an empty chat; it goes away once the user asks something.
+        RemoveWelcome();
+
+        var userMessage = new ChatMessageViewModel { IsUser = true, Content = text, Attachments = attachments };
+        Messages.Add(userMessage);
 
         var reply = new ChatMessageViewModel { IsUser = false, Content = "Thinking..." };
         Messages.Add(reply);
@@ -337,7 +527,7 @@ public partial class CopilotViewModel : ObservableObject, IToolApprovalService
 
         try
         {
-            var history = BuildHistory(text);
+            var history = BuildHistory(userMessage);
 
             string answer = IsAgentMode
                 ? await RunAgentTurnAsync(history, _turn.Token).ConfigureAwait(true)
@@ -346,10 +536,23 @@ public partial class CopilotViewModel : ObservableObject, IToolApprovalService
             await InvokeOnUiAsync(() =>
             {
                 reply.Content = string.IsNullOrWhiteSpace(answer) ? "(empty response)" : answer.Trim();
+                MarkActiveKeyWorking();
                 return Task.CompletedTask;
             }).ConfigureAwait(true);
+        }
+        catch (CopilotApiException ex) when (ex.IsKeyRejected)
+        {
+            await InvokeOnUiAsync(() =>
+            {
+                reply.Content = HandleRejectedKey(ex);
 
-            PersistCurrentHistory();
+                // Put the message back so it can be sent again with one key press.
+                if (InputText.Length == 0)
+                    InputText = text;
+                foreach (var attachment in attachments)
+                    PendingAttachments.Add(attachment);
+                return Task.CompletedTask;
+            }).ConfigureAwait(true);
         }
         catch (OperationCanceledException)
         {
@@ -374,6 +577,9 @@ public partial class CopilotViewModel : ObservableObject, IToolApprovalService
                 SettlePendingApprovals();
                 IsBusy = false;
                 IsApplyingLayoutChanges = false;
+
+                // Save every exchange, whatever the outcome, so it is there next time the layout opens.
+                PersistCurrentHistory();
                 return Task.CompletedTask;
             }).ConfigureAwait(true);
         }
@@ -522,7 +728,7 @@ public partial class CopilotViewModel : ObservableObject, IToolApprovalService
         }
     }
 
-    private List<ChatMessage> BuildHistory(string latestUserMessage)
+    private List<ChatMessage> BuildHistory(ChatMessageViewModel latest)
     {
         var history = new List<ChatMessage> { new("system", IsAgentMode ? AgentSystemPrompt : BaseSystemPrompt) };
 
@@ -543,18 +749,32 @@ public partial class CopilotViewModel : ObservableObject, IToolApprovalService
 
         foreach (var message in Messages
                      .OfType<ChatMessageViewModel>()
-                     .Where(m => m.Content is not "Thinking..." &&
+                     .Where(m => !ReferenceEquals(m, latest) &&
+                                 m.Content is not ("Thinking..." or "Stopped.") &&
                                  !m.Content.StartsWith("Error:") &&
                                  m.Content != DefaultWelcome &&
                                  m.Content != AgentWelcome)
                      .TakeLast(MaxHistoryMessages))
         {
             string content = Truncate(message.Content, MaxHistoryMessageChars);
+
+            // Earlier attachments are named, not resent, so long conversations stay small.
+            if (message.HasAttachments)
+                content += $"\n[Attached: {string.Join(", ", message.Attachments.Select(a => a.Name))}]";
+
             history.Add(new ChatMessage(message.IsUser ? "user" : "assistant", content));
         }
 
-        if (history.Count == 0 || history[^1].Content != latestUserMessage)
-            history.Add(new ChatMessage("user", latestUserMessage));
+        // The current turn goes in full: the text, each attached file, and the images as image parts.
+        var sent = latest.Attachments.Select(a => a.Attachment).ToList();
+        string prompt = ChatAttachmentLoader.ComposePrompt(latest.Content, sent);
+        if (prompt.Length == 0)
+            prompt = "Please look at the attached file(s).";
+        else if (latest.Content.Length == 0)
+            prompt = "Please look at the attached file(s).\n\n" + prompt;
+
+        var images = sent.Where(a => a.Image is not null).Select(a => a.Image!).ToList();
+        history.Add(new ChatMessage("user", prompt) { Images = images.Count > 0 ? images : null });
 
         return history;
     }
@@ -608,7 +828,15 @@ public partial class CopilotViewModel : ObservableObject, IToolApprovalService
             return;
         }
 
-        foreach (var msg in stored)
+        // Older history files may hold the welcome text; it is not part of the conversation.
+        var conversation = stored.Where(m => !IsWelcomeText(m.Content)).ToList();
+        if (conversation.Count == 0)
+        {
+            ShowWelcome();
+            return;
+        }
+
+        foreach (var msg in conversation)
             Messages.Add(new ChatMessageViewModel { IsUser = msg.IsUser, Content = msg.Content });
     }
 
@@ -621,79 +849,148 @@ public partial class CopilotViewModel : ObservableObject, IToolApprovalService
         // carried across restarts.
         _historyStore.Save(
             _reportPath,
-            Messages.OfType<ChatMessageViewModel>().Select(m => (m.IsUser, m.Content)));
+            Messages.OfType<ChatMessageViewModel>()
+                .Where(m => !IsWelcomeText(m.Content))
+                .Select(m => (m.IsUser, m.HasAttachments
+                ? (m.Content + $"\n\n📎 {string.Join(", ", m.Attachments.Select(a => a.Name))}").Trim()
+                : m.Content)));
     }
 
     private void ShowWelcome() =>
         Messages.Add(new ChatMessageViewModel { IsUser = false, Content = IsAgentMode ? AgentWelcome : DefaultWelcome });
 
-    partial void OnModelChanged(string value)
+    private static bool IsWelcomeText(string content) =>
+        content == DefaultWelcome || content == AgentWelcome;
+
+    private void RemoveWelcome()
     {
-        if (_loadingSettings)
+        foreach (var welcome in Messages.OfType<ChatMessageViewModel>()
+                     .Where(m => !m.IsUser && IsWelcomeText(m.Content))
+                     .ToList())
+            Messages.Remove(welcome);
+    }
+
+    /// <summary>Picks a provider and model from the Rex picker.</summary>
+    [RelayCommand]
+    private void SelectModel(ModelChoiceViewModel? choice)
+    {
+        if (choice is null)
             return;
 
-        PersistSelectedModel(value);
+        var settings = _settingsService.Settings;
+        if (settings.Profile(choice.Provider) is not { IsUsable: true } profile)
+        {
+            OpenSettingsRequested?.Invoke();
+            return;
+        }
+
+        settings.Provider = choice.Provider;
+        profile.Model = choice.ModelId;
+        ComposerNotice = string.Empty;
+        _settingsService.Save();
+    }
+
+    [RelayCommand]
+    private void OpenSettings() => OpenSettingsRequested?.Invoke();
+
+    /// <summary>
+    /// Marks the active key rejected and moves to the next usable provider, if there is one.
+    /// </summary>
+    /// <returns>The message shown in the conversation.</returns>
+    private string HandleRejectedKey(CopilotApiException error)
+    {
+        var settings = _settingsService.Settings;
+        string rejected = CopilotProviderDefaults.DisplayName(error.Provider);
+        if (settings.Profile(error.Provider) is { } profile)
+        {
+            profile.KeyStatus = CopilotKeyStatus.Rejected;
+            profile.KeyError = error.Detail.Length > 200 ? error.Detail[..200] + "…" : error.Detail;
+        }
+
+        bool switched = settings.EnsureUsableActive();
+        _settingsService.Save();
+
+        return switched
+            ? $"Error: {rejected} rejected the API key ({error.Status}). Rex switched to **{CopilotProviderDefaults.DisplayName(settings.Provider)}** — press Enter to send your message again, or fix the {rejected} key in Settings."
+            : $"Error: {rejected} rejected the API key ({error.Status}). Update it in **Settings › Copilot AI**, or add another provider.";
+    }
+
+    /// <summary>Records that the active key works, the first time a reply comes back with it.</summary>
+    private void MarkActiveKeyWorking()
+    {
+        if (_settingsService.Settings.Active is { KeyStatus: not CopilotKeyStatus.Valid } profile)
+        {
+            profile.KeyStatus = CopilotKeyStatus.Valid;
+            profile.KeyError = null;
+            _settingsService.Save();
+        }
     }
 
     private void LoadSettingsIntoUi()
     {
-        _loadingSettings = true;
-        try
-        {
-            var s = _settingsService.Settings;
-            ApiKey = s.ApiKey;
-            BaseUrl = s.BaseUrl;
-            AzureDeployment = s.AzureDeployment;
-            SelectedProvider = s.Provider.ToString();
-            ProviderDisplayName = CopilotProviderDefaults.DisplayName(s.Provider);
-            RefreshModelOptions(s.Provider);
-            Model = NormalizeModelId(s.Model);
-        }
-        finally
-        {
-            _loadingSettings = false;
-        }
-    }
+        var settings = _settingsService.Settings;
 
-    private void RefreshModelOptions(CopilotProvider provider)
-    {
+        // A provider whose key is missing or rejected is never left selected while another works.
+        if (settings.EnsureUsableActive())
+            _settingsService.Save();
+
+        var active = settings.Active;
+        CanChat = settings.HasUsableActiveProvider;
+        ProviderDisplayName = CopilotProviderDefaults.DisplayName(settings.Provider);
+        Model = settings.Model;
+
         ModelOptions.Clear();
-        foreach (var option in CopilotProviderDefaults.Models(provider))
+        foreach (var option in OptionsFor(settings.Provider, Model))
             ModelOptions.Add(option);
-    }
+        ModelDisplayName = ModelOptions.FirstOrDefault(m => string.Equals(m.ModelId, Model, StringComparison.OrdinalIgnoreCase))?.DisplayName ?? Model;
 
-    private string NormalizeModelId(string? modelId)
-    {
-        if (!string.IsNullOrWhiteSpace(modelId) &&
-            ModelOptions.Any(m => string.Equals(m.ModelId, modelId, StringComparison.OrdinalIgnoreCase)))
-            return modelId!;
+        SetupMessage = settings.Providers.Count == 0
+            ? "Rex needs an AI provider. Add an API key for Gemini, Claude, OpenAI, Groq, Mistral, OpenRouter or Azure — or connect a local Ollama — in Settings."
+            : settings.Providers.All(p => !p.HasKey)
+                ? "None of your AI providers has an API key yet. Add one in Settings to chat with Rex."
+                : "Your API keys were rejected. Update a key in Settings, or add another provider, to chat with Rex.";
 
-        return CopilotProviderDefaults.DefaultModel(
-            Enum.TryParse<CopilotProvider>(SelectedProvider, out var provider)
-                ? provider
-                : CopilotProvider.Groq);
-    }
+        if (CanChat && ComposerNotice == SetupMessage)
+            ComposerNotice = string.Empty;
 
-    private void PersistSelectedModel(string? modelId)
-    {
-        string normalized = NormalizeModelId(modelId);
-        if (!string.Equals(Model, normalized, StringComparison.Ordinal))
+        ProviderChoices.Clear();
+        var ordered = CopilotProviderDefaults.AllProviders
+            .OrderBy(p => settings.Profile(p) is { IsUsable: true } ? 0 : settings.Profile(p) is not null ? 1 : 2);
+        foreach (var provider in ordered)
         {
-            _loadingSettings = true;
-            try
+            var profile = settings.Profile(provider);
+            bool usable = profile is { IsUsable: true };
+            bool isActive = usable && provider == settings.Provider;
+            string model = profile?.EffectiveModel ?? CopilotProviderDefaults.DefaultModel(provider);
+            ProviderChoices.Add(new ProviderChoiceViewModel
             {
-                Model = normalized;
-            }
-            finally
-            {
-                _loadingSettings = false;
-            }
+                Provider = provider,
+                IsUsable = usable,
+                IsActive = isActive,
+                Status = profile is null ? "Not set up"
+                    : !profile.HasKey ? "No API key"
+                    : profile.KeyStatus == CopilotKeyStatus.Rejected ? "Key rejected"
+                    : string.Empty,
+                Models = OptionsFor(provider, model)
+                    .Select(option => new ModelChoiceViewModel
+                    {
+                        Provider = provider,
+                        Option = option,
+                        IsSelected = isActive && string.Equals(option.ModelId, model, StringComparison.OrdinalIgnoreCase),
+                        IsProviderModel = string.Equals(option.ModelId, model, StringComparison.OrdinalIgnoreCase),
+                    })
+                    .ToList(),
+            });
         }
+    }
 
-        if (string.Equals(_settingsService.Settings.Model, normalized, StringComparison.Ordinal))
-            return;
-
-        _settingsService.Settings.Model = normalized;
-        _settingsService.Save();
+    /// <summary>The provider's listed models, plus the configured one when it is a custom id.</summary>
+    private static IReadOnlyList<AiModelOption> OptionsFor(CopilotProvider provider, string model)
+    {
+        var options = CopilotProviderDefaults.Models(provider).ToList();
+        if (!string.IsNullOrWhiteSpace(model) &&
+            !options.Any(o => string.Equals(o.ModelId, model, StringComparison.OrdinalIgnoreCase)))
+            options.Insert(0, new AiModelOption(model, model, "Custom model from Settings"));
+        return options;
     }
 }

@@ -84,6 +84,25 @@ public static class RdlValidator
 
         var invalidReferences = new List<InvalidReference>();
 
+        // An aggregate scope can name a group or a data region instead of a dataset
+        // (for example Sum(Fields!Amount.Value, "CityGroup")); its fields come from that scope's dataset.
+        var scopes = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var region in tablix.Document?.Root?.Descendants(ns + "Tablix") ?? [])
+        {
+            string? regionDataSet = region.Element(ns + "DataSetName")?.Value;
+            if (string.IsNullOrEmpty(regionDataSet))
+                continue;
+
+            if (region.Attribute("Name")?.Value is { Length: > 0 } regionName)
+                scopes.TryAdd(regionName, regionDataSet);
+
+            foreach (var group in region.Descendants(ns + "Group"))
+            {
+                if (group.Attribute("Name")?.Value is { Length: > 0 } groupName)
+                    scopes.TryAdd(groupName, regionDataSet);
+            }
+        }
+
         void Check(string? expression, string location)
         {
             if (string.IsNullOrEmpty(expression))
@@ -91,8 +110,11 @@ public static class RdlValidator
 
             var byDataSet = ExpressionParser.ExtractWithContext(expression, dataSetName);
 
-            foreach ((string referencedDataSet, var fields) in byDataSet)
+            foreach ((string scope, var fields) in byDataSet)
             {
+                string referencedDataSet = !fieldsByDataSet.ContainsKey(scope) && scopes.TryGetValue(scope, out var scopeDataSet)
+                    ? scopeDataSet
+                    : scope;
                 bool dataSetExists = fieldsByDataSet.TryGetValue(referencedDataSet, out var known);
 
                 foreach (string field in fields)

@@ -1,0 +1,267 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        REX V3 design system, after SafiPay (MudBlazor theme "SafiTheme"):
+        - fonts: Segoe UI first (SafiPay's stack), 10px corner radius,
+        - navy app bar (56px) and drawer (264px), grey page background, white surfaces,
+        - teal secondary for positive actions, status colours for chips.
+        The Safi.* brushes are published at runtime by SafiThemeManager for light and dark mode.
+    -->
+
+    <FontFamily x:Key="Safi.FontFamily">Segoe UI, Tahoma, Arial</FontFamily>
+    <CornerRadius x:Key="Safi.Radius">10</CornerRadius>
+    <CornerRadius x:Key="Safi.RadiusSmall">6</CornerRadius>
+    <GridLength x:Key="Safi.AppBarHeight">56</GridLength>
+    <system:Double xmlns:system="clr-namespace:System;assembly=mscorlib" x:Key="Safi.DrawerWidth">232</system:Double>
+    <system:Double xmlns:system="clr-namespace:System;assembly=mscorlib" x:Key="Safi.DrawerCollapsedWidth">64</system:Double>
+
+    <!-- Placeholders so designers resolve the keys before the theme manager runs. -->
+    <SolidColorBrush x:Key="Safi.PrimaryBrush" Color="#0F3D5E" />
+    <SolidColorBrush x:Key="Safi.PrimaryLightenBrush" Color="#1D5680" />
+    <SolidColorBrush x:Key="Safi.PrimaryContrastTextBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="Safi.SecondaryBrush" Color="#1F7A6A" />
+    <SolidColorBrush x:Key="Safi.SecondaryContrastTextBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="Safi.BackgroundBrush" Color="#F3F6F8" />
+    <SolidColorBrush x:Key="Safi.SurfaceBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="Safi.AppBarBackgroundBrush" Color="#0F3D5E" />
+    <SolidColorBrush x:Key="Safi.AppBarTextBrush" Color="#FFFFFF" />
+    <SolidColorBrush x:Key="Safi.DrawerBackgroundBrush" Color="#0F3D5E" />
+    <SolidColorBrush x:Key="Safi.DrawerTextBrush" Color="#E7EEF4" />
+    <SolidColorBrush x:Key="Safi.DrawerIconBrush" Color="#D5E3EE" />
+    <SolidColorBrush x:Key="Safi.DrawerSelectedBrush" Color="#1D5680" />
+    <SolidColorBrush x:Key="Safi.TextPrimaryBrush" Color="#1C2833" />
+    <SolidColorBrush x:Key="Safi.TextSecondaryBrush" Color="#5C6B7A" />
+    <SolidColorBrush x:Key="Safi.DividerBrush" Color="#D5DEE6" />
+    <SolidColorBrush x:Key="Safi.TableLinesBrush" Color="#E4EAF0" />
+    <SolidColorBrush x:Key="Safi.TableHoverBrush" Color="#F7FAFC" />
+    <SolidColorBrush x:Key="Safi.SuccessBrush" Color="#1B7F4E" />
+    <SolidColorBrush x:Key="Safi.WarningBrush" Color="#B86E00" />
+    <SolidColorBrush x:Key="Safi.ErrorBrush" Color="#B42318" />
+    <SolidColorBrush x:Key="Safi.InfoBrush" Color="#0F5F8A" />
+    <SolidColorBrush x:Key="Safi.TertiaryBrush" Color="#8A5A12" />
+    <SolidColorBrush x:Key="Safi.OverlayHoverBrush" Color="#1FFFFFFF" />
+    <SolidColorBrush x:Key="Safi.OverlaySelectedBrush" Color="#33FFFFFF" />
+    <SolidColorBrush x:Key="Safi.SurfaceHoverBrush" Color="#F7FAFC" />
+    <SolidColorBrush x:Key="Safi.ChipBrush" Color="#E7EEF4" />
+
+    <!-- Surfaces -->
+    <Style x:Key="Safi.Card" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource Safi.SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Safi.DividerBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{StaticResource Safi.Radius}" />
+        <Setter Property="Padding" Value="16" />
+    </Style>
+
+    <Style x:Key="Safi.Chip" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource Safi.ChipBrush}" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="8,2" />
+        <Setter Property="Margin" Value="0,0,6,0" />
+    </Style>
+
+    <!-- Typography -->
+    <Style x:Key="Safi.PageTitle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Safi.FontFamily}" />
+        <Setter Property="FontSize" Value="22" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource Safi.TextPrimaryBrush}" />
+    </Style>
+
+    <Style x:Key="Safi.SectionTitle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Safi.FontFamily}" />
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+        <Setter Property="Foreground" Value="{DynamicResource Safi.TextPrimaryBrush}" />
+    </Style>
+
+    <Style x:Key="Safi.Body" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Safi.FontFamily}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Foreground" Value="{DynamicResource Safi.TextPrimaryBrush}" />
+    </Style>
+
+    <Style x:Key="Safi.Caption" TargetType="TextBlock" BasedOn="{StaticResource Safi.Body}">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource Safi.TextSecondaryBrush}" />
+    </Style>
+
+    <!-- Buttons -->
+    <Style x:Key="Safi.ButtonBase" TargetType="Button">
+        <Setter Property="FontFamily" Value="{StaticResource Safi.FontFamily}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="14,7" />
+        <Setter Property="Margin" Value="0,0,8,0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Chrome"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{StaticResource Safi.RadiusSmall}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          TextElement.Foreground="{TemplateBinding Foreground}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Opacity" Value="0.9" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Chrome" Property="Opacity" Value="0.8" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Chrome" Property="Opacity" Value="0.45" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Safi.PrimaryButton" TargetType="Button" BasedOn="{StaticResource Safi.ButtonBase}">
+        <Setter Property="Background" Value="{DynamicResource Safi.PrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Safi.PrimaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource Safi.PrimaryContrastTextBrush}" />
+    </Style>
+
+    <Style x:Key="Safi.SecondaryButton" TargetType="Button" BasedOn="{StaticResource Safi.ButtonBase}">
+        <Setter Property="Background" Value="{DynamicResource Safi.SecondaryBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Safi.SecondaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource Safi.SecondaryContrastTextBrush}" />
+    </Style>
+
+    <Style x:Key="Safi.OutlinedButton" TargetType="Button" BasedOn="{StaticResource Safi.ButtonBase}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Safi.DividerBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource Safi.TextPrimaryBrush}" />
+    </Style>
+
+    <Style x:Key="Safi.AppBarButton" TargetType="Button" BasedOn="{StaticResource Safi.ButtonBase}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Safi.AppBarTextBrush}" />
+        <Setter Property="Padding" Value="8,6" />
+        <Setter Property="Margin" Value="0" />
+    </Style>
+
+    <!-- Drawer navigation item: icon + label, highlighted when checked (SafiPay AppDrawer). -->
+    <Style x:Key="Safi.DrawerItem" TargetType="RadioButton">
+        <Setter Property="Margin" Value="8,2" />
+        <Setter Property="Padding" Value="12,9" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FontFamily" Value="{StaticResource Safi.FontFamily}" />
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="Foreground" Value="{DynamicResource Safi.DrawerTextBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Grid>
+                        <Border x:Name="Bg" CornerRadius="8" Padding="{TemplateBinding Padding}" Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <Border x:Name="Marker" Width="3" HorizontalAlignment="Left" Margin="0,8"
+                                CornerRadius="2" Background="{DynamicResource Safi.SecondaryLightenBrush}"
+                                Visibility="Collapsed" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Safi.OverlayHoverBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Safi.OverlaySelectedBrush}" />
+                            <Setter TargetName="Marker" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Tabs inside the report center, underlined like MudTabs. -->
+    <Style x:Key="Safi.TabItem" TargetType="TabItem">
+        <Setter Property="FontFamily" Value="{StaticResource Safi.FontFamily}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Padding" Value="14,8" />
+        <Setter Property="Foreground" Value="{DynamicResource Safi.TextSecondaryBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabItem">
+                    <Border x:Name="Bd" Padding="{TemplateBinding Padding}" BorderThickness="0,0,0,2" BorderBrush="Transparent" Background="Transparent">
+                        <ContentPresenter ContentSource="Header" TextElement.Foreground="{TemplateBinding Foreground}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource Safi.PrimaryLightenBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Safi.TextPrimaryBrush}" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Foreground" Value="{DynamicResource Safi.TextPrimaryBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Data grid with SafiPay table lines and hover. -->
+    <!-- Column header: page background, primary text (12:1 or better on every theme), divider underneath. -->
+    <Style x:Key="Safi.DataGridColumnHeader" TargetType="DataGridColumnHeader">
+        <Setter Property="Background" Value="{DynamicResource Safi.BackgroundBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource Safi.TextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Safi.DividerBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Padding" Value="8,7" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridColumnHeader">
+                    <Grid>
+                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="0,0,1,1" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}" RecognizesAccessKey="True" />
+                        </Border>
+                        <Thumb x:Name="PART_LeftHeaderGripper" HorizontalAlignment="Left" Width="6" Cursor="SizeWE" Opacity="0" />
+                        <Thumb x:Name="PART_RightHeaderGripper" HorizontalAlignment="Right" Width="6" Cursor="SizeWE" Opacity="0" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{DynamicResource Safi.SurfaceHoverBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Safi.DataGrid" TargetType="DataGrid">
+        <Setter Property="ColumnHeaderStyle" Value="{StaticResource Safi.DataGridColumnHeader}" />
+        <Setter Property="Background" Value="{DynamicResource Safi.SurfaceBrush}" />
+        <Setter Property="RowBackground" Value="{DynamicResource Safi.SurfaceBrush}" />
+        <Setter Property="AlternatingRowBackground" Value="{DynamicResource Safi.TableHoverBrush}" />
+        <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource Safi.TableLinesBrush}" />
+        <Setter Property="VerticalGridLinesBrush" Value="{DynamicResource Safi.TableLinesBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Safi.DividerBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource Safi.TextPrimaryBrush}" />
+        <Setter Property="GridLinesVisibility" Value="Horizontal" />
+        <Setter Property="HeadersVisibility" Value="Column" />
+        <Setter Property="IsReadOnly" Value="True" />
+        <Setter Property="AutoGenerateColumns" Value="True" />
+        <Setter Property="CanUserAddRows" Value="False" />
+        <Setter Property="FontSize" Value="12.5" />
+    </Style>
+    <!-- GitHub mark (Octicons "mark-github", MIT licence) for the open-source links. -->
+    <Geometry x:Key="Rex.GitHubMark">M 8 0 c 4.42 0 8 3.58 8 8 a 8.013 8.013 0 0 1 -5.45 7.59 c -0.4 0.08 -0.55 -0.17 -0.55 -0.38 0 -0.27 0.01 -1.13 0.01 -2.2 0 -0.75 -0.25 -1.23 -0.54 -1.48 1.78 -0.2 3.65 -0.88 3.65 -3.95 0 -0.88 -0.31 -1.59 -0.82 -2.15 0.08 -0.2 0.36 -1.02 -0.08 -2.12 0 0 -0.67 -0.22 -2.2 0.82 -0.64 -0.18 -1.32 -0.27 -2 -0.27 -0.68 0 -1.36 0.09 -2 0.27 -1.53 -1.03 -2.2 -0.82 -2.2 -0.82 -0.44 1.1 -0.16 1.92 -0.08 2.12 -0.51 0.56 -0.82 1.28 -0.82 2.15 0 3.06 1.86 3.75 3.64 3.95 -0.23 0.2 -0.44 0.55 -0.51 1.07 -0.46 0.21 -1.61 0.55 -2.33 -0.66 -0.15 -0.24 -0.6 -0.83 -1.23 -0.82 -0.67 0.01 -0.27 0.38 0.01 0.53 0.34 0.19 0.73 0.9 0.82 1.13 0.16 0.45 0.68 1.31 2.69 0.94 0 0.67 0.01 1.3 0.01 1.49 0 0.21 -0.15 0.45 -0.55 0.38 A 7.995 7.995 0 0 1 0 8 c 0 -4.42 3.58 -8 8 -8 Z</Geometry>
+
+</ResourceDictionary>

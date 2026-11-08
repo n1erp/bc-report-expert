@@ -18,7 +18,6 @@ namespace ReportExpert.Modules.Preview.ViewModels;
 
 public partial class SettingsViewModel : ObservableObject
 {
-    private static readonly HttpClient TestHttp = new() { Timeout = TimeSpan.FromSeconds(30) };
 
     private readonly SettingsService _settingsService;
     private readonly CopilotSettingsService _copilotSettingsService;
@@ -32,13 +31,7 @@ public partial class SettingsViewModel : ObservableObject
     private string _theme;
 
     [ObservableProperty]
-    private string _defaultExportFolder;
-
-    [ObservableProperty]
     private int _rowsGenerated;
-
-    [ObservableProperty]
-    private bool _isCustomRowCount;
 
     [ObservableProperty]
     private int _fontSize;
@@ -62,22 +55,7 @@ public partial class SettingsViewModel : ObservableObject
     private bool _showDesignerGridlines = true;
 
     [ObservableProperty]
-    private string _apiKey = string.Empty;
-
-    [ObservableProperty]
-    private string _model = string.Empty;
-
-    [ObservableProperty]
-    private CopilotProvider _selectedProvider = CopilotProvider.Groq;
-
-    [ObservableProperty]
     private string _statusMessage = string.Empty;
-
-    [ObservableProperty]
-    private string _apiKeyTestMessage = string.Empty;
-
-    [ObservableProperty]
-    private bool _isTestingApiKey;
 
     [ObservableProperty]
     private bool _agentModeEnabled;
@@ -91,26 +69,28 @@ public partial class SettingsViewModel : ObservableObject
     /// <summary>The MCP servers and whether each is running.</summary>
     public ObservableCollection<McpServerRowViewModel> McpServers { get; } = [];
 
-    /// <summary>Models for the currently selected provider.</summary>
-    public ObservableCollection<AiModelOption> ModelOptions { get; } = [];
+    /// <summary>The AI providers set up for Rex, each with its own key and model.</summary>
+    public ObservableCollection<ProviderSettingsRowViewModel> ConfiguredProviders { get; } = [];
 
-    /// <summary>Providers shown in the Copilot combo box.</summary>
-    public IReadOnlyList<CopilotProvider> ProviderOptions { get; } = CopilotProviderDefaults.AllProviders;
+    /// <summary>Providers not set up yet, offered by "Add provider".</summary>
+    public ObservableCollection<CopilotProvider> AddableProviders { get; } = [];
 
-    public string[] ThemeOptions { get; } = [ThemeNames.System, ThemeNames.Light, ThemeNames.Dark];
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(AddProviderCommand))]
+    private CopilotProvider? _providerToAdd;
 
-    public ControlAppearance Rows10Appearance =>
-        !IsCustomRowCount && RowsGenerated == 10 ? ControlAppearance.Primary : ControlAppearance.Secondary;
+    public bool HasConfiguredProviders => ConfiguredProviders.Count > 0;
 
-    public ControlAppearance Rows50Appearance =>
-        !IsCustomRowCount && RowsGenerated == 50 ? ControlAppearance.Primary : ControlAppearance.Secondary;
+    public bool HasAddableProviders => AddableProviders.Count > 0;
 
-    public ControlAppearance RowsCustomAppearance =>
-        IsCustomRowCount ? ControlAppearance.Primary : ControlAppearance.Secondary;
+    public string[] ThemeOptions { get; } = ThemeNames.All;
 
-    public string ProviderDisplayName => CopilotProviderDefaults.DisplayName(SelectedProvider);
+    /// <summary>Settings › Preview › Sample rows: quick picks; any other value is typed in the number box.</summary>
+    public IReadOnlyList<RowPresetOption> RowPresets { get; } =
+        [new(10), new(25), new(50), new(100), new(250)];
 
-    public string GetApiKeyToolTip => $"Open {ProviderDisplayName} to create an API key";
+    /// <summary>"50 rows per dataset" — the summary beside the heading.</summary>
+    public string RowsSummary => RowsGenerated == 1 ? "1 row per dataset" : $"{RowsGenerated} rows per dataset";
 
     public event Action? SettingsSaved;
 
@@ -121,9 +101,8 @@ public partial class SettingsViewModel : ObservableObject
 
         var s = settingsService.Settings;
         _theme = s.Theme;
-        _defaultExportFolder = s.DefaultExportFolder;
         _rowsGenerated = Math.Clamp(s.RowsGenerated, 1, 500);
-        _isCustomRowCount = _rowsGenerated is not 10 and not 50;
+        SelectPreset(_rowsGenerated);
         _fontSize = s.FontSize;
         _maxRecentFiles = s.MaxRecentFiles;
         _rememberRecentFiles = s.RememberRecentFiles;
@@ -133,11 +112,8 @@ public partial class SettingsViewModel : ObservableObject
         _showDesignerGridlines = s.ShowDesignerGridlines;
 
         var c = copilotSettingsService.Settings;
-        _apiKey = c.ApiKey;
-        _selectedProvider = c.Provider;
-        RefreshModelOptions(_selectedProvider);
-        _model = NormalizeModelId(c.Model);
         _agentModeEnabled = c.AgentModeEnabled;
+        RebuildProviderRows();
 
         _suppressAutoSave = false;
     }
@@ -172,13 +148,8 @@ public partial class SettingsViewModel : ObservableObject
         try
         {
             var c = _copilotSettingsService.Settings;
-            ApiKey = c.ApiKey;
-            SelectedProvider = c.Provider;
-            RefreshModelOptions(c.Provider);
-            Model = NormalizeModelId(c.Model);
             AgentModeEnabled = c.AgentModeEnabled;
-            OnPropertyChanged(nameof(ProviderDisplayName));
-            OnPropertyChanged(nameof(GetApiKeyToolTip));
+            RebuildProviderRows();
         }
         finally
         {
@@ -274,37 +245,6 @@ public partial class SettingsViewModel : ObservableObject
         _onToolEnablementChanged?.Invoke();
     }
 
-    [RelayCommand]
-    private void GetApiKey()
-    {
-        try
-        {
-            Process.Start(new ProcessStartInfo(CopilotProviderDefaults.ApiKeyUrl(SelectedProvider))
-            {
-                UseShellExecute = true,
-            });
-        }
-        catch (Exception)
-        {
-            StatusMessage = "Could not open the API key page.";
-        }
-    }
-
-    partial void OnSelectedProviderChanged(CopilotProvider value)
-    {
-        OnPropertyChanged(nameof(ProviderDisplayName));
-        OnPropertyChanged(nameof(GetApiKeyToolTip));
-        RefreshModelOptions(value);
-        Model = NormalizeModelId(Model);
-    }
-
-    private void RefreshModelOptions(CopilotProvider provider)
-    {
-        ModelOptions.Clear();
-        foreach (var option in CopilotProviderDefaults.Models(provider))
-            ModelOptions.Add(option);
-    }
-
     protected override void OnPropertyChanged(PropertyChangedEventArgs e)
     {
         base.OnPropertyChanged(e);
@@ -312,10 +252,9 @@ public partial class SettingsViewModel : ObservableObject
         if (_suppressAutoSave)
             return;
 
-        if (e.PropertyName is nameof(StatusMessage) or nameof(ApiKeyTestMessage) or nameof(IsTestingApiKey)
-            or nameof(Rows10Appearance) or nameof(Rows50Appearance) or nameof(RowsCustomAppearance)
-            or nameof(IsCustomRowCount) or nameof(IsRefreshingMcp) or nameof(McpConfigurationPath)
-            or nameof(ProviderDisplayName) or nameof(GetApiKeyToolTip) or null)
+        if (e.PropertyName is nameof(StatusMessage)
+            or nameof(RowsSummary) or nameof(IsRefreshingMcp) or nameof(McpConfigurationPath)
+            or nameof(ProviderToAdd) or nameof(HasConfiguredProviders) or nameof(HasAddableProviders) or null)
             return;
 
         if (e.PropertyName == nameof(RowsGenerated))
@@ -327,125 +266,31 @@ public partial class SettingsViewModel : ObservableObject
                 return;
             }
 
-            if (!IsCustomRowCount)
-                IsCustomRowCount = clamped is not 10 and not 50;
-
-            NotifyRowAppearances();
+            SelectPreset(clamped);
+            OnPropertyChanged(nameof(RowsSummary));
         }
 
         ScheduleAutoSave();
     }
 
-    partial void OnIsCustomRowCountChanged(bool value) => NotifyRowAppearances();
-
     [RelayCommand]
-    private void SetRowCount(string? preset)
+    private void SetRowCount(object? preset)
     {
-        if (!int.TryParse(preset, out int rows))
-            return;
-
-        IsCustomRowCount = false;
-        if (RowsGenerated == rows)
+        int rows = preset switch
         {
-            NotifyRowAppearances();
-            return;
-        }
-
-        RowsGenerated = rows;
-    }
-
-    [RelayCommand]
-    private void UseCustomRowCount()
-    {
-        IsCustomRowCount = true;
-        NotifyRowAppearances();
-    }
-
-    private void NotifyRowAppearances()
-    {
-        OnPropertyChanged(nameof(Rows10Appearance));
-        OnPropertyChanged(nameof(Rows50Appearance));
-        OnPropertyChanged(nameof(RowsCustomAppearance));
-    }
-
-    [RelayCommand]
-    private void BrowseExportFolder()
-    {
-        using var dlg = new System.Windows.Forms.FolderBrowserDialog
-        {
-            Description = "Select default export folder",
-            SelectedPath = DefaultExportFolder
+            int value => value,
+            RowPresetOption option => option.Rows,
+            string text when int.TryParse(text, out int parsed) => parsed,
+            _ => 0,
         };
-
-        if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            DefaultExportFolder = dlg.SelectedPath;
+        if (rows > 0)
+            RowsGenerated = Math.Clamp(rows, 1, 500);
     }
 
-    private bool CanTestApiKey() => !IsTestingApiKey;
-
-    partial void OnIsTestingApiKeyChanged(bool value) =>
-        TestApiKeyCommand.NotifyCanExecuteChanged();
-
-    [RelayCommand(CanExecute = nameof(CanTestApiKey))]
-    private async Task TestApiKeyAsync()
+    private void SelectPreset(int rows)
     {
-        string key = ApiKey.Trim();
-        if (string.IsNullOrWhiteSpace(key))
-        {
-            ApiKeyTestMessage = "Enter an API key first.";
-            return;
-        }
-
-        string model = string.IsNullOrWhiteSpace(Model)
-            ? CopilotProviderDefaults.DefaultModel(SelectedProvider)
-            : Model.Trim();
-
-        IsTestingApiKey = true;
-        ApiKeyTestMessage = "Testing…";
-
-        try
-        {
-            string url = $"{CopilotProviderDefaults.DefaultBaseUrl(SelectedProvider).TrimEnd('/')}/chat/completions";
-            var payload = new
-            {
-                model,
-                messages = new[] { new { role = "user", content = "Reply with OK only." } },
-                max_tokens = 5,
-                temperature = 0
-            };
-
-            using var request = new HttpRequestMessage(HttpMethod.Post, url);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", key);
-            if (SelectedProvider == CopilotProvider.AzureOpenAI)
-                request.Headers.Add("api-key", key);
-            request.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-
-            using var response = await TestHttp.SendAsync(request);
-            string body = await response.Content.ReadAsStringAsync();
-
-            if (response.IsSuccessStatusCode)
-            {
-                ApiKeyTestMessage = "API key is valid.";
-                StatusMessage = "API key OK";
-            }
-            else
-            {
-                string detail = TryExtractError(body) ?? body;
-                if (detail.Length > 180)
-                    detail = detail[..180] + "…";
-                ApiKeyTestMessage = $"Failed ({(int)response.StatusCode}): {detail}";
-                StatusMessage = "API key test failed";
-            }
-        }
-        catch (Exception ex)
-        {
-            ApiKeyTestMessage = $"Failed: {ex.Message}";
-            StatusMessage = "API key test failed";
-        }
-        finally
-        {
-            IsTestingApiKey = false;
-        }
+        foreach (var preset in RowPresets)
+            preset.IsSelected = preset.Rows == rows;
     }
 
     private void ScheduleAutoSave()
@@ -474,7 +319,6 @@ public partial class SettingsViewModel : ObservableObject
     private void Persist()
     {
         _settingsService.Settings.Theme = Theme;
-        _settingsService.Settings.DefaultExportFolder = DefaultExportFolder;
         _settingsService.Settings.RowsGenerated = Math.Clamp(RowsGenerated, 1, 500);
         _settingsService.Settings.FontSize = FontSize;
         _settingsService.Settings.MaxRecentFiles = Math.Clamp(MaxRecentFiles, 1, 50);
@@ -485,40 +329,96 @@ public partial class SettingsViewModel : ObservableObject
         _settingsService.Settings.ShowDesignerGridlines = ShowDesignerGridlines;
         _settingsService.Save();
 
-        _copilotSettingsService.Settings.Provider = SelectedProvider;
-        _copilotSettingsService.Settings.ApiKey = ApiKey.Trim();
-        _copilotSettingsService.Settings.Model = NormalizeModelId(Model);
-        _copilotSettingsService.Settings.BaseUrl = CopilotProviderDefaults.DefaultBaseUrl(SelectedProvider);
-        _copilotSettingsService.Settings.AzureDeployment = string.Empty;
-        _copilotSettingsService.Settings.AgentModeEnabled = AgentModeEnabled;
+        // Provider rows edit their profiles in place; saving writes them along with agent mode.
+        var copilot = _copilotSettingsService.Settings;
+        copilot.AgentModeEnabled = AgentModeEnabled;
+        copilot.EnsureUsableActive();
         _copilotSettingsService.Save();
+        foreach (var row in ConfiguredProviders)
+        {
+            row.IsActive = row.Provider == copilot.Provider && row.Profile.IsUsable;
+            row.RefreshStatus();
+        }
 
         StatusMessage = "Saved";
         SettingsSaved?.Invoke();
     }
 
-    private string NormalizeModelId(string? modelId)
-    {
-        if (!string.IsNullOrWhiteSpace(modelId) &&
-            ModelOptions.Any(m => string.Equals(m.ModelId, modelId, StringComparison.OrdinalIgnoreCase)))
-            return modelId!;
+    // ---- AI providers ----
 
-        return CopilotProviderDefaults.DefaultModel(SelectedProvider);
-    }
-
-    private static string? TryExtractError(string body)
+    private void RebuildProviderRows()
     {
-        try
+        var settings = _copilotSettingsService.Settings;
+        ConfiguredProviders.Clear();
+        foreach (var profile in settings.Providers)
         {
-            using var doc = JsonDocument.Parse(body);
-            if (doc.RootElement.TryGetProperty("error", out var error))
-                return error.TryGetProperty("message", out var message) ? message.GetString() : error.ToString();
-        }
-        catch (JsonException)
-        {
-            // Provider error bodies are not always JSON; fall back to the raw snippet.
+            ConfiguredProviders.Add(new ProviderSettingsRowViewModel(
+                profile,
+                isActive: profile.Provider == settings.Provider && profile.IsUsable,
+                changed: ScheduleAutoSave,
+                remove: RemoveProvider,
+                activate: ActivateProvider));
         }
 
-        return null;
+        AddableProviders.Clear();
+        foreach (var provider in CopilotProviderDefaults.AllProviders.Where(p => settings.Profile(p) is null))
+            AddableProviders.Add(provider);
+        ProviderToAdd = AddableProviders.Count > 0 ? AddableProviders[0] : null;
+
+        OnPropertyChanged(nameof(HasConfiguredProviders));
+        OnPropertyChanged(nameof(HasAddableProviders));
     }
+
+    private bool CanAddProvider() => ProviderToAdd is not null;
+
+    /// <summary>Adds the chosen provider; the first one added becomes the one Rex uses.</summary>
+    [RelayCommand(CanExecute = nameof(CanAddProvider))]
+    private void AddProvider()
+    {
+        if (ProviderToAdd is not { } provider)
+            return;
+
+        var settings = _copilotSettingsService.Settings;
+        bool first = !settings.UsableProviders.Any();
+        settings.GetOrAddProfile(provider);
+        if (first)
+            settings.Provider = provider;
+
+        RebuildProviderRows();
+        _copilotSettingsService.Save();
+        StatusMessage = $"{CopilotProviderDefaults.DisplayName(provider)} added — enter its API key.";
+    }
+
+    private void RemoveProvider(ProviderSettingsRowViewModel row)
+    {
+        var settings = _copilotSettingsService.Settings;
+        settings.Providers.Remove(row.Profile);
+        settings.EnsureUsableActive();
+        RebuildProviderRows();
+        _copilotSettingsService.Save();
+        StatusMessage = $"{row.DisplayName} removed.";
+    }
+
+    private void ActivateProvider(ProviderSettingsRowViewModel row)
+    {
+        if (!row.Profile.IsUsable)
+            return;
+
+        _copilotSettingsService.Settings.Provider = row.Provider;
+        _copilotSettingsService.Save();
+        foreach (var other in ConfiguredProviders)
+            other.IsActive = ReferenceEquals(other, row);
+        StatusMessage = $"Rex now uses {row.DisplayName}.";
+    }
+}
+
+/// <summary>A quick pick for the sample row count.</summary>
+public sealed partial class RowPresetOption(int rows) : ObservableObject
+{
+    public int Rows { get; } = rows;
+
+    public string Label => Rows.ToString(System.Globalization.CultureInfo.CurrentCulture);
+
+    [ObservableProperty]
+    private bool _isSelected;
 }

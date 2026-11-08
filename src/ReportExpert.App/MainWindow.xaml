@@ -5,6 +5,7 @@
                  xmlns:preview="clr-namespace:ReportExpert.Modules.Preview.Views;assembly=ReportExpert.Modules.Preview"
                  xmlns:home="clr-namespace:ReportExpert.App.Home"
                  xmlns:ws="clr-namespace:ReportExpert.App.Workspace"
+                 xmlns:reports="clr-namespace:ReportExpert.App.Reports"
                  Title="{Binding WindowTitle}"
                  Icon="pack://application:,,,/Assets/app-icon.ico"
                  Height="860"
@@ -14,32 +15,76 @@
                  WindowStartupLocation="CenterScreen"
                  WindowState="Maximized"
                  ExtendsContentIntoTitleBar="True"
-                 WindowBackdropType="Mica">
+                 WindowBackdropType="None"
+                 Background="{DynamicResource Safi.BackgroundBrush}"
+                 TextElement.FontFamily="{StaticResource Safi.FontFamily}">
 
     <ui:FluentWindow.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
-
-        <Style x:Key="NavButton" TargetType="RadioButton">
-            <Setter Property="Margin" Value="6,3" />
-            <Setter Property="Padding" Value="0,8" />
+        <reports:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis" />
+        <reports:NullToVisibilityConverter x:Key="NotNullToVis" Invert="True" />
+        <Style x:Key="WorkspacePanelToggle" TargetType="ToggleButton">
+            <Setter Property="Padding" Value="12,9" />
             <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="Foreground" Value="{DynamicResource Safi.TextPrimaryBrush}" />
             <Setter Property="Template">
                 <Setter.Value>
-                    <ControlTemplate TargetType="RadioButton">
-                        <Border x:Name="Bg" CornerRadius="8" Padding="{TemplateBinding Padding}"
-                                Background="Transparent">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
-                                              TextElement.Foreground="{TemplateBinding Foreground}" />
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bg" CornerRadius="8" Padding="{TemplateBinding Padding}" Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Bg" Property="Background"
-                                        Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
-                            </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bg" Property="Background"
-                                        Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Safi.SurfaceHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Safi.ChipBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- App bar toggle (Settings gear): lit while its page is open. -->
+        <Style x:Key="AppBarToggle" TargetType="ToggleButton">
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="{DynamicResource Safi.AppBarTextBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bg" CornerRadius="6" Padding="{TemplateBinding Padding}" Background="Transparent"
+                                BorderThickness="1" BorderBrush="{DynamicResource Safi.OverlaySelectedBrush}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Safi.OverlaySelectedBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Safi.OverlaySelectedBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- Collapsed workspace panel: a vertical "Reports" tab (Visual Studio auto-hide style). -->
+        <Style x:Key="SideTab" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="{DynamicResource Safi.TextSecondaryBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" Background="Transparent" BorderThickness="0,0,2,0" BorderBrush="Transparent" Padding="0,12">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Top" TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Safi.SurfaceHoverBrush}" />
+                                <Setter TargetName="Bg" Property="BorderBrush" Value="{DynamicResource Safi.PrimaryLightenBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource Safi.TextPrimaryBrush}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -52,76 +97,140 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
+        <!-- App bar (SafiPay AppBar): navy, product name, workspace, theme switcher -->
         <ui:TitleBar Grid.Row="0"
-                     Title="{Binding WindowTitle}"
+                     Height="52"
+                     Background="{DynamicResource Safi.AppBarBackgroundBrush}"
+                     ButtonsForeground="{DynamicResource Safi.AppBarTextBrush}"
                      ShowMinimize="True"
                      ShowMaximize="True"
                      ShowClose="True"
                      CloseWindowByDoubleClickOnIcon="True">
-            <ui:TitleBar.Icon>
-                <ui:ImageIcon x:Name="AppLogo" Width="22" Height="22" />
-            </ui:TitleBar.Icon>
+            <ui:TitleBar.Header>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="6,0,0,0">
+                    <ui:ImageIcon x:Name="AppLogo" Width="22" Height="22" Margin="8,0,8,0" VerticalAlignment="Center" />
+                    <TextBlock Text="Report Expert" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Safi.AppBarTextBrush}" />
+                    <Border CornerRadius="10" Padding="7,1" Margin="8,0,0,0" VerticalAlignment="Center"
+                            Background="{DynamicResource Safi.OverlaySelectedBrush}">
+                        <TextBlock Text="2 Baboon" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Safi.AppBarTextBrush}" />
+                    </Border>
+                    <TextBlock Text="{Binding WorkspaceName}" FontSize="13" Margin="18,0,0,0" VerticalAlignment="Center" Opacity="0.85"
+                               Foreground="{DynamicResource Safi.AppBarTextBrush}"
+                               Visibility="{Binding HasWorkspace, Converter={StaticResource BoolToVis}}" />
+                </StackPanel>
+            </ui:TitleBar.Header>
+            <ui:TitleBar.TrailingContent>
+                <!-- Settings (the theme is chosen there): click again to return to the editor. -->
+                <ToggleButton x:Name="NavSettings" Style="{StaticResource AppBarToggle}" Margin="0,0,10,0" VerticalAlignment="Center"
+                              ToolTip="Settings — theme, AI providers, MCP servers, designer" WindowChrome.IsHitTestVisibleInChrome="True">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Settings24" FontSize="17" Foreground="{DynamicResource Safi.AppBarTextBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="Settings" FontSize="13" FontWeight="SemiBold" Margin="7,0,2,0" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Safi.AppBarTextBrush}" />
+                    </StackPanel>
+                </ToggleButton>
+            </ui:TitleBar.TrailingContent>
         </ui:TitleBar>
 
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="92" />
+                <ColumnDefinition x:Name="DrawerColumn" Width="250" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!-- Navigation rail -->
-            <Border Grid.Column="0" BorderThickness="0,0,1,0"
-                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
-                <DockPanel Margin="0,8,0,8" LastChildFill="True">
-                    <RadioButton x:Name="NavSettings" DockPanel.Dock="Bottom"
-                                 Style="{StaticResource NavButton}"
-                                 GroupName="Nav" ToolTip="Application settings">
+            <!-- Workspace panel: the AL project's layouts. The « button collapses it to the vertical Reports tab. -->
+            <Border x:Name="DrawerPanel" Grid.Column="0" Background="{DynamicResource Safi.SurfaceBrush}"
+                    BorderBrush="{DynamicResource Safi.DividerBrush}" BorderThickness="0,0,1,0">
+                <DockPanel LastChildFill="True">
+                    <DockPanel DockPanel.Dock="Top" Margin="16,18,10,0"
+                               Visibility="{Binding HasWorkspace, Converter={StaticResource InverseBoolToVis}}">
+                        <DockPanel DockPanel.Dock="Top">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource Safi.OutlinedButton}" BorderThickness="0" Padding="6,4" Margin="0"
+                                    Click="OnCollapseDrawer" ToolTip="Collapse the panel">
+                                <ui:SymbolIcon Symbol="ChevronDoubleLeft20" FontSize="13" />
+                            </Button>
+                            <TextBlock Text="WORKSPACE" FontSize="11" FontWeight="SemiBold" Opacity="0.65" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource Safi.TextSecondaryBrush}" />
+                        </DockPanel>
                         <StackPanel>
-                            <ui:SymbolIcon Symbol="Settings24" FontSize="20" HorizontalAlignment="Center"
-                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                            <TextBlock Text="Settings" FontSize="10" Margin="0,3,0,0" HorizontalAlignment="Center"
-                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                            <TextBlock Text="Open an AL extension folder to list its reports and layouts."
+                                       Margin="0,6,6,12" TextWrapping="Wrap" FontSize="12.5"
+                                       Foreground="{DynamicResource Safi.TextSecondaryBrush}" />
+                            <Button Style="{StaticResource Safi.PrimaryButton}" Command="{Binding OpenProjectCommand}" HorizontalAlignment="Left">
+                                <StackPanel Orientation="Horizontal">
+                                    <ui:SymbolIcon Symbol="FolderOpen24" FontSize="16" Margin="0,0,6,0" />
+                                    <TextBlock Text="Open folder" />
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
-                    </RadioButton>
+                    </DockPanel>
 
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
-                        <RadioButton x:Name="NavHome" Style="{StaticResource NavButton}" IsChecked="True"
-                                     GroupName="Nav" ToolTip="Home — edit layouts &amp; Copilot">
-                            <StackPanel>
-                                <ui:SymbolIcon Symbol="Home24" FontSize="20" HorizontalAlignment="Center"
-                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                                <TextBlock Text="Home" FontSize="10" Margin="0,3,0,0" HorizontalAlignment="Center"
-                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
-                            </StackPanel>
-                        </RadioButton>
-                    </StackPanel>
-                    </ScrollViewer>
+                    <ws:WorkspaceExplorerView x:Name="WorkspaceExplorer"
+                                              Visibility="{Binding HasWorkspace, Converter={StaticResource BoolToVis}}" />
                 </DockPanel>
             </Border>
 
-            <!-- Content -->
+            <Border x:Name="ReportsTab" Grid.Column="0" Visibility="Collapsed" Background="{DynamicResource Safi.SurfaceBrush}"
+                    BorderBrush="{DynamicResource Safi.DividerBrush}" BorderThickness="0,0,1,0">
+                <Button Style="{StaticResource SideTab}" Click="OnExpandDrawer" ToolTip="Show the reports panel" VerticalAlignment="Stretch">
+                    <StackPanel Orientation="Horizontal">
+                        <StackPanel.LayoutTransform>
+                            <RotateTransform Angle="90" />
+                        </StackPanel.LayoutTransform>
+                        <ui:SymbolIcon Symbol="DocumentBulletList24" FontSize="15" Margin="0,0,8,0">
+                            <ui:SymbolIcon.LayoutTransform>
+                                <RotateTransform Angle="-90" />
+                            </ui:SymbolIcon.LayoutTransform>
+                        </ui:SymbolIcon>
+                        <TextBlock Text="Reports" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </Border>
+
+            <!-- Content: the workspace editor (designer, AL, Excel, Word, Copilot) or Settings -->
             <Grid Grid.Column="1">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-
-                <ws:WorkspaceExplorerView x:Name="WorkspaceExplorer"
-                                          Grid.Column="0"
-                                          Width="300"
-                                          Visibility="{Binding HasWorkspace, Converter={StaticResource BoolToVis}}" />
-
-                <Grid Grid.Column="1">
-                    <home:HomeView x:Name="HomeFeature"
-                                   Visibility="{Binding IsChecked, ElementName=NavHome, Converter={StaticResource BoolToVis}}" />
-
-                    <preview:SettingsView x:Name="SettingsFeature"
-                                          Visibility="{Binding IsChecked, ElementName=NavSettings, Converter={StaticResource BoolToVis}}" />
-                </Grid>
+                <home:HomeView x:Name="HomeFeature"
+                               Visibility="{Binding IsChecked, ElementName=NavSettings, Converter={StaticResource InverseBoolToVis}}" />
+                <preview:SettingsView x:Name="SettingsFeature"
+                                      Visibility="{Binding IsChecked, ElementName=NavSettings, Converter={StaticResource BoolToVis}}" />
             </Grid>
         </Grid>
+
+        <!-- Status bar: the open report on the left, the designer's last message on the right. -->
+        <Border Grid.Row="2" Background="{DynamicResource Safi.SurfaceBrush}" BorderBrush="{DynamicResource Safi.DividerBrush}"
+                BorderThickness="0,1,0,0" Padding="12,4">
+            <DockPanel>
+                <Border DockPanel.Dock="Right" Visibility="{Binding HomeViewer.IsRdlcLayout, Converter={StaticResource BoolToVis}}">
+                <StackPanel x:Name="DesignerStatus" Orientation="Horizontal">
+                    <ProgressBar Width="90" Height="4" IsIndeterminate="True" Margin="0,0,10,0" VerticalAlignment="Center"
+                                 Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" />
+                    <TextBlock Text="{Binding Status}" FontSize="12" VerticalAlignment="Center" MaxWidth="560" TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding Status}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="{DynamicResource Safi.TextSecondaryBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsError}" Value="True">
+                                        <Setter Property="Foreground" Value="{DynamicResource Safi.ErrorBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
+                </Border>
+                <StackPanel Orientation="Horizontal" Visibility="{Binding SelectedFile, Converter={StaticResource NotNullToVis}}">
+                    <ui:SymbolIcon Symbol="DocumentRibbon24" FontSize="14" Foreground="{DynamicResource Safi.PrimaryLightenBrush}" Margin="0,0,6,0" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding SelectedFile.Name}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Safi.TextPrimaryBrush}" />
+                    <TextBlock Text="{Binding SelectedFile.DisplayPath}" FontSize="12" Margin="10,0,0,0" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Safi.TextSecondaryBrush}" TextTrimming="CharacterEllipsis" MaxWidth="420" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
     </Grid>
 </ui:FluentWindow>

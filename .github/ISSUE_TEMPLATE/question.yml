@@ -1,0 +1,22 @@
+name: ❓ Question
+description: Ask how to do something with REX.
+title: "[Question] "
+labels: ["question"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: What are you trying to do?
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What you already tried
+      description: Docs you read, steps you took, what happened.
+  - type: input
+    id: version
+    attributes:
+      label: REX version
+      placeholder: "rex-2.0-baboon"

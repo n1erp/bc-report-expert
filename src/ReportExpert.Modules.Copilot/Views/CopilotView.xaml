@@ -9,6 +9,55 @@
         <helpers:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis" />
         <helpers:UserToAlignmentConverter x:Key="UserToAlignment" />
 
+        <!-- Composer chip: thumbnail (image) or icon (file), name, type · size, remove. -->
+        <DataTemplate x:Key="PendingAttachmentTemplate">
+            <Border Margin="0,0,6,6" Padding="4,4,2,4" CornerRadius="8" ToolTip="{Binding ToolTip}"
+                    Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="34" Height="34" CornerRadius="5" ClipToBounds="True"
+                            Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
+                        <Grid>
+                            <Image Source="{Binding Thumbnail}" Stretch="UniformToFill"
+                                   Visibility="{Binding IsImage, Converter={StaticResource BoolToVis}}" />
+                            <ui:SymbolIcon Symbol="{Binding Icon}" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+                                           Visibility="{Binding IsFile, Converter={StaticResource BoolToVis}}" />
+                        </Grid>
+                    </Border>
+                    <StackPanel Margin="8,0,4,0" VerticalAlignment="Center" MaxWidth="150">
+                        <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Detail}" FontSize="10" Opacity="0.6" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <ui:Button Appearance="Transparent" Padding="4" VerticalAlignment="Center" ToolTip="Remove"
+                               Command="{Binding DataContext.RemoveAttachmentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                               CommandParameter="{Binding}">
+                        <ui:SymbolIcon Symbol="Dismiss12" FontSize="11" />
+                    </ui:Button>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- Sent message: images as small previews, files as chips. -->
+        <DataTemplate x:Key="SentAttachmentTemplate">
+            <Grid Margin="0,0,6,6" ToolTip="{Binding ToolTip}">
+                <Border CornerRadius="6" ClipToBounds="True" MaxWidth="200" MaxHeight="140"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                        Visibility="{Binding IsImage, Converter={StaticResource BoolToVis}}">
+                    <Image Source="{Binding Thumbnail}" Stretch="Uniform" />
+                </Border>
+                <Border Padding="8,5" CornerRadius="6" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                        Visibility="{Binding IsFile, Converter={StaticResource BoolToVis}}">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="{Binding Icon}" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                        <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center" MaxWidth="180" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Detail}" FontSize="10" Opacity="0.55" Margin="8,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </DataTemplate>
+
         <!-- VS Code agent-style: assistant = flat text; user = soft chip -->
         <DataTemplate x:Key="ChatMessageTemplate">
             <Grid Margin="0,8"
@@ -49,9 +98,18 @@
                         HorizontalAlignment="Right"
                         Background="{DynamicResource SubtleFillColorSecondaryBrush}"
                         Visibility="{Binding IsUser, Converter={StaticResource BoolToVis}}">
-                    <helpers:MarkdownViewer Markdown="{Binding Content}"
-                                            FontSize="13"
-                                            Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                    <StackPanel>
+                        <ItemsControl ItemsSource="{Binding Attachments}" ItemTemplate="{StaticResource SentAttachmentTemplate}"
+                                      Visibility="{Binding HasAttachments, Converter={StaticResource BoolToVis}}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                        <helpers:MarkdownViewer Markdown="{Binding Content}"
+                                                FontSize="13"
+                                                Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                Visibility="{Binding ShowMarkdown, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
                 </Border>
 
                 <!-- Assistant: width follows the chat pane -->
@@ -222,13 +280,6 @@
                                Opacity="0.55"
                                TextTrimming="CharacterEllipsis" />
                 </StackPanel>
-                <ui:Button Grid.Column="1"
-                           Appearance="Transparent"
-                           ToolTip="Clear chat"
-                           Command="{Binding ClearChatCommand}"
-                           VerticalAlignment="Top">
-                    <ui:SymbolIcon Symbol="Broom24" />
-                </ui:Button>
             </Grid>
         </Border>
 
@@ -290,66 +341,187 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <ui:TextBox x:Name="InputBox"
-                                Text="{Binding InputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                PlaceholderText="Ask Rex to help you with the layout"
-                                AcceptsReturn="True"
-                                TextWrapping="Wrap"
-                                MinHeight="56"
-                                MaxHeight="140"
-                                VerticalContentAlignment="Top"
-                                Padding="10,8"
-                                VerticalScrollBarVisibility="Auto"
-                                PreviewKeyDown="InputBox_PreviewKeyDown"
-                                ToolTip="Enter to send · Shift+Enter for a new line" />
-                    <ui:Button Grid.Column="1"
-                               Margin="8,0,0,0"
-                               Appearance="Primary"
-                               Command="{Binding SendCommand}"
-                               MinHeight="56"
-                               MinWidth="44"
-                               VerticalAlignment="Bottom"
-                               ToolTip="Send (Enter)">
-                        <ui:SymbolIcon Symbol="Send24" />
-                    </ui:Button>
-                </Grid>
-
-                <!-- Provider + model -->
-                <DockPanel Grid.Row="1" Margin="2,8,0,0" LastChildFill="True">
-                    <TextBlock DockPanel.Dock="Left"
-                               Text="{Binding ProviderDisplayName}"
-                               FontSize="11"
-                               Opacity="0.55"
-                               VerticalAlignment="Center"
-                               Margin="0,0,10,0"
-                               ToolTip="Configured in Settings" />
-                    <ComboBox ItemsSource="{Binding ModelOptions}"
-                              SelectedValuePath="ModelId"
-                              SelectedValue="{Binding Model, Mode=TwoWay}"
-                              FontSize="11"
-                              MinHeight="28"
-                              MaxWidth="280"
-                              HorizontalAlignment="Left"
-                              VerticalAlignment="Center"
-                              ToolTip="Change model (saved to Settings)">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Margin="0,1">
-                                    <TextBlock FontWeight="SemiBold" Text="{Binding DisplayName}" FontSize="11" />
-                                    <TextBlock FontSize="10" Opacity="0.55"
-                                               Text="{Binding ModelId}" FontFamily="Consolas" />
+                <!-- Composer box: attachments, live dictation, input, and the attach / voice / send row.
+                     Files can also be dropped here, and a screenshot pasted with Ctrl+V. -->
+                <Border x:Name="ComposerBox"
+                        CornerRadius="10"
+                        BorderThickness="1"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        Background="{DynamicResource ControlFillColorDefaultBrush}"
+                        AllowDrop="True"
+                        DragEnter="ComposerBox_DragOver"
+                        DragOver="ComposerBox_DragOver"
+                        DragLeave="ComposerBox_DragLeave"
+                        Drop="ComposerBox_Drop">
+                    <StackPanel>
+                        <!-- No usable provider: say so, and offer the way to fix it. -->
+                        <Border Margin="8,8,8,0" Padding="12,10" CornerRadius="8"
+                                Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                Visibility="{Binding NeedsProviderSetup, Converter={StaticResource BoolToVis}}">
+                            <DockPanel>
+                                <ui:SymbolIcon DockPanel.Dock="Left" Symbol="Key24" FontSize="18" Margin="0,0,10,0" VerticalAlignment="Top"
+                                               Foreground="{DynamicResource SystemFillColorCautionBrush}" />
+                                <StackPanel>
+                                    <TextBlock Text="Connect an AI provider" FontSize="12.5" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding SetupMessage}" FontSize="11.5" Opacity="0.75" TextWrapping="Wrap" Margin="0,2,0,8" />
+                                    <ui:Button Content="Open Settings" Appearance="Primary" Padding="12,4" HorizontalAlignment="Left"
+                                               Command="{Binding OpenSettingsCommand}" />
                                 </StackPanel>
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
+                            </DockPanel>
+                        </Border>
+
+                        <ItemsControl ItemsSource="{Binding PendingAttachments}"
+                                      ItemTemplate="{StaticResource PendingAttachmentTemplate}"
+                                      Margin="8,8,8,0"
+                                      Visibility="{Binding HasPendingAttachments, Converter={StaticResource BoolToVis}}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+
+                        <!-- Listening strip -->
+                        <Border Margin="8,8,8,0" Padding="10,6" CornerRadius="6"
+                                Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                Visibility="{Binding IsRecording, Converter={StaticResource BoolToVis}}">
+                            <DockPanel>
+                                <ui:Button DockPanel.Dock="Right" Appearance="Transparent" Padding="8,2" Content="Stop"
+                                           Command="{Binding ToggleVoiceCommand}" ToolTip="Stop listening" />
+                                <Ellipse Width="9" Height="9" Fill="#FFE5484D" Margin="0,0,8,0" VerticalAlignment="Center">
+                                    <Ellipse.Triggers>
+                                        <EventTrigger RoutedEvent="Loaded">
+                                            <BeginStoryboard>
+                                                <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0.25" Duration="0:0:0.7" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+                                    </Ellipse.Triggers>
+                                </Ellipse>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="Listening — speak in English. Text appears in the box for you to edit." FontSize="11" Opacity="0.75" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding VoiceHypothesis}" FontSize="12" FontStyle="Italic" TextWrapping="Wrap" Opacity="0.9" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+
+                        <ui:TextBox x:Name="InputBox"
+                                    Text="{Binding InputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    PlaceholderText="Ask Rex to help you with the layout"
+                                    AcceptsReturn="True"
+                                    TextWrapping="Wrap"
+                                    MinHeight="48"
+                                    MaxHeight="160"
+                                    VerticalContentAlignment="Top"
+                                    Padding="10,8"
+                                    Margin="2,2,2,0"
+                                    BorderThickness="0"
+                                    Background="Transparent"
+                                    VerticalScrollBarVisibility="Auto"
+                                    PreviewKeyDown="InputBox_PreviewKeyDown"
+                                    ToolTip="Enter to send · Shift+Enter for a new line · Ctrl+V pastes a screenshot" />
+
+                        <DockPanel Margin="4,2,6,6">
+                            <ui:Button DockPanel.Dock="Right"
+                                       Appearance="Primary"
+                                       Command="{Binding SendCommand}"
+                                       IsEnabled="{Binding CanChat}"
+                                       Width="36"
+                                       Height="32"
+                                       Padding="0"
+                                       ToolTip="Send (Enter)">
+                                <ui:SymbolIcon Symbol="Send24" FontSize="16" />
+                            </ui:Button>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <ui:Button Appearance="Transparent" Padding="7,5" Click="AttachFile_Click"
+                                           ToolTip="Attach files — RDLC, XML, JSON, TXT, AL, PDF… (or drop them here)">
+                                    <ui:SymbolIcon Symbol="Attach24" FontSize="17" />
+                                </ui:Button>
+                                <ui:Button Appearance="Transparent" Padding="7,5" Click="AttachImage_Click"
+                                           ToolTip="Attach an image — screenshot, report design, error message (or paste with Ctrl+V)">
+                                    <ui:SymbolIcon Symbol="ImageAdd24" FontSize="17" />
+                                </ui:Button>
+                                <ui:Button Padding="7,5" Command="{Binding ToggleVoiceCommand}">
+                                    <ui:Button.Style>
+                                        <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                            <Setter Property="Appearance" Value="Transparent" />
+                                            <Setter Property="ToolTip" Value="Voice input — dictate in English, then review the text and send" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsRecording}" Value="True">
+                                                    <Setter Property="Appearance" Value="Danger" />
+                                                    <Setter Property="ToolTip" Value="Stop listening" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ui:Button.Style>
+                                    <Grid>
+                                        <ui:SymbolIcon Symbol="Mic24" FontSize="17"
+                                                       Visibility="{Binding IsRecording, Converter={StaticResource InverseBoolToVis}}" />
+                                        <ui:SymbolIcon Symbol="MicRecord24" FontSize="17" Filled="True"
+                                                       Visibility="{Binding IsRecording, Converter={StaticResource BoolToVis}}" />
+                                    </Grid>
+                                </ui:Button>
+                            </StackPanel>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Grid.Row="1" Text="{Binding ComposerNotice}" FontSize="11" TextWrapping="Wrap" Margin="4,6,4,0"
+                           Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                           Visibility="{Binding HasComposerNotice, Converter={StaticResource BoolToVis}}" />
+
+                <!-- Provider + model picker: one button; a two-step popup (provider, then model) with search. -->
+                <DockPanel Grid.Row="2" Margin="0,8,0,0" LastChildFill="False">
+                    <Button x:Name="ModelPickerButton" DockPanel.Dock="Left" Click="ModelPicker_Click" Cursor="Hand"
+                            Padding="8,4" Background="Transparent" BorderThickness="1"
+                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                            ToolTip="Switch provider or model">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" CornerRadius="6" Padding="{TemplateBinding Padding}"
+                                        Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}">
+                                    <ContentPresenter VerticalAlignment="Center" />
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="7" Height="7" Margin="0,0,7,0" VerticalAlignment="Center">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Fill" Value="#FF3FB950" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CanChat}" Value="False">
+                                                <Setter Property="Fill" Value="#FFD29922" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
+                            <StackPanel Orientation="Horizontal" Visibility="{Binding CanChat, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="{Binding ModelDisplayName}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"
+                                           MaxWidth="170" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding ProviderDisplayName}" FontSize="11" Opacity="0.55" Margin="7,0,0,0"
+                                           VerticalAlignment="Center" MaxWidth="120" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <TextBlock Text="Set up a provider" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"
+                                       Visibility="{Binding NeedsProviderSetup, Converter={StaticResource BoolToVis}}" />
+                            <ui:SymbolIcon Symbol="ChevronDown16" FontSize="11" Margin="6,0,0,0" VerticalAlignment="Center" Opacity="0.7" />
+                        </StackPanel>
+                    </Button>
                 </DockPanel>
+
+                <!-- Disclaimer -->
+                <TextBlock Grid.Row="3" Margin="0,8,0,0" HorizontalAlignment="Center" FontSize="10.5" Opacity="0.55"
+                           TextAlignment="Center" Text="REX can make mistakes." />
             </Grid>
         </Border>
     </Grid>

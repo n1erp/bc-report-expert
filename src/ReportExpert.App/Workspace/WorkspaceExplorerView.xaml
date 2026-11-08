@@ -1,4 +1,4 @@
-<UserControl x:Class="ReportExpert.App.Workspace.WorkspaceExplorerView"
+﻿<UserControl x:Class="ReportExpert.App.Workspace.WorkspaceExplorerView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
@@ -11,8 +11,8 @@
     </UserControl.Resources>
 
     <Border BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-            BorderThickness="0,0,1,0"
-            Background="{DynamicResource ApplicationBackgroundBrush}">
+            BorderThickness="0"
+            Background="Transparent">
         <DockPanel>
             <Border DockPanel.Dock="Top"
                     Padding="12,10"
@@ -53,6 +53,12 @@
                                    ToolTip="Refresh project"
                                    Command="{Binding RefreshWorkspaceCommand}">
                             <ui:SymbolIcon Symbol="ArrowClockwise24" FontSize="14" />
+                        </ui:Button>
+                        <ui:Button Appearance="Transparent"
+                                   Padding="6"
+                                   ToolTip="Collapse the panel (reopen it from the Reports tab)"
+                                   Click="CollapseButton_Click">
+                            <ui:SymbolIcon Symbol="ChevronDoubleLeft20" FontSize="14" />
                         </ui:Button>
                     </StackPanel>
                 </Grid>
@@ -106,6 +112,16 @@
                                                     <Setter Property="Background"
                                                             Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
                                                 </Trigger>
+                                                <!-- The open report stays highlighted. -->
+                                                <DataTrigger Value="True">
+                                                    <DataTrigger.Binding>
+                                                    <MultiBinding Converter="{StaticResource SamePath}">
+                                                        <Binding Path="File.FullPath" />
+                                                        <Binding Path="DataContext.SelectedFile.FullPath" RelativeSource="{RelativeSource AncestorType=UserControl}" />
+                                                    </MultiBinding>
+                                                    </DataTrigger.Binding>
+                                                    <Setter Property="Background" Value="{DynamicResource Safi.ChipBrush}" />
+                                                </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </Border.Style>
@@ -114,6 +130,26 @@
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
+
+                                        <!-- Selection marker on the left edge -->
+                                        <Border Width="3" CornerRadius="2" HorizontalAlignment="Left" Margin="-7,2,0,2">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="Transparent" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Value="True">
+                                                            <DataTrigger.Binding>
+                                                            <MultiBinding Converter="{StaticResource SamePath}">
+                                                        <Binding Path="File.FullPath" />
+                                                        <Binding Path="DataContext.SelectedFile.FullPath" RelativeSource="{RelativeSource AncestorType=UserControl}" />
+                                                    </MultiBinding>
+                                                            </DataTrigger.Binding>
+                                                            <Setter Property="Background" Value="{DynamicResource Safi.PrimaryLightenBrush}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                        </Border>
 
                                         <!-- Type badge + icon -->
                                         <Border Width="28" Height="28"
@@ -165,7 +201,23 @@
                                         <StackPanel Grid.Column="1">
                                             <TextBlock Text="{Binding DisplayTitle}"
                                                        TextTrimming="CharacterEllipsis"
-                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Value="True">
+                                                                <DataTrigger.Binding>
+                                                                <MultiBinding Converter="{StaticResource SamePath}">
+                                                        <Binding Path="File.FullPath" />
+                                                        <Binding Path="DataContext.SelectedFile.FullPath" RelativeSource="{RelativeSource AncestorType=UserControl}" />
+                                                    </MultiBinding>
+                                                                </DataTrigger.Binding>
+                                                                <Setter Property="FontWeight" Value="SemiBold" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
                                             <TextBlock Text="{Binding Summary}"
                                                        FontSize="10"
                                                        Opacity="0.5"

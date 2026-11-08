@@ -2,12 +2,13 @@ using System.IO;
 using System.Text.Json;
 using ReportExpert.Common;
 using ReportExpert.Modules.Preview.Models;
+using ReportExpert.Storage;
 
 namespace ReportExpert.Modules.Preview.Services;
 
 /// <summary>
-/// Tracks recently opened RDLC paths under
-/// <c>%AppData%\ReportExpert\recent.json</c>.
+/// Tracks recently opened RDLC paths in the REX SQLite database. A <c>recent.json</c> from an older REX
+/// is imported the first time.
 /// </summary>
 public sealed class RecentFilesService
 {
@@ -28,17 +29,25 @@ public sealed class RecentFilesService
 
     public void Load()
     {
-        if (!File.Exists(_recentPath))
-        {
-            _entries = [];
-            return;
-        }
-
         try
         {
-            string json = File.ReadAllText(_recentPath);
-            _entries = JsonSerializer.Deserialize<List<RecentFileEntry>>(json) ?? [];
-            _entries = _entries.Where(e => File.Exists(e.Path)).ToList();
+            var database = RexDatabase.Default;
+            const string imported = RexStorageKeys.LegacyFilesImported + ".recent-files";
+            if (!database.HasKey(imported))
+            {
+                if (File.Exists(_recentPath))
+                {
+                    var legacy = JsonSerializer.Deserialize<List<RecentFileEntry>>(File.ReadAllText(_recentPath)) ?? [];
+                    database.ReplaceRecentItems(RexStorageKeys.RecentFile, legacy.Select(e => new RecentItem(e.Path, System.IO.Path.GetFileName(e.Path), e.LastOpenedUtc)));
+                }
+
+                database.SetJson(imported, DateTimeOffset.UtcNow);
+            }
+
+            _entries = database.RecentItems(RexStorageKeys.RecentFile)
+                .Select(item => new RecentFileEntry { Path = item.Path, LastOpenedUtc = item.OpenedUtc })
+                .Where(e => File.Exists(e.Path))
+                .ToList();
         }
         catch (Exception)
         {
@@ -66,9 +75,8 @@ public sealed class RecentFilesService
         Save();
     }
 
-    public void Save()
-    {
-        string json = JsonSerializer.Serialize(_entries, JsonOptions);
-        File.WriteAllText(_recentPath, json);
-    }
+    public void Save() =>
+        RexDatabase.Default.ReplaceRecentItems(
+            RexStorageKeys.RecentFile,
+            _entries.Select(e => new RecentItem(e.Path, System.IO.Path.GetFileName(e.Path), e.LastOpenedUtc)));
 }

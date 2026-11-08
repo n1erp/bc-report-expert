@@ -1,13 +1,43 @@
-<UserControl x:Class="ReportExpert.App.Home.HomeView"
+﻿<UserControl x:Class="ReportExpert.App.Home.HomeView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:editors="clr-namespace:ReportExpert.Editors.Editors;assembly=ReportExpert.Editors"
              xmlns:helpers="clr-namespace:ReportExpert.Modules.Preview.Helpers;assembly=ReportExpert.Modules.Preview"
              xmlns:rg="clr-namespace:unvell.ReoGrid;assembly=unvell.ReoGrid"
-             xmlns:copilot="clr-namespace:ReportExpert.Modules.Copilot.Views;assembly=ReportExpert.Modules.Copilot">
+             xmlns:copilot="clr-namespace:ReportExpert.Modules.Copilot.Views;assembly=ReportExpert.Modules.Copilot"
+             xmlns:reports="clr-namespace:ReportExpert.App.Reports">
 
     <UserControl.Resources>
+        <!-- Activity bar icon: highlighted with an edge marker while its panel is open. -->
+        <Style x:Key="ActivityButton" TargetType="ToggleButton">
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="42" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="{DynamicResource Safi.TextSecondaryBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Grid Background="Transparent">
+                            <Border x:Name="Bg" Margin="4,2" CornerRadius="6" Background="Transparent" />
+                            <Border x:Name="Marker" Width="2" HorizontalAlignment="Left" Margin="0,8" CornerRadius="1"
+                                    Background="{DynamicResource Safi.PrimaryLightenBrush}" Visibility="Collapsed" />
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource Safi.SurfaceHoverBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource Safi.TextPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Marker" Property="Visibility" Value="Visible" />
+                                <Setter Property="Foreground" Value="{DynamicResource Safi.PrimaryLightenBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <helpers:BoolToVisibilityConverter x:Key="BoolToVis" />
         <helpers:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis" />
     </UserControl.Resources>
@@ -124,8 +154,22 @@
             <Border Grid.Row="0"
                     Padding="16,12"
                     BorderThickness="0,0,0,1"
-                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                    Visibility="{Binding HomeViewer.IsIdle, Converter={StaticResource InverseBoolToVis}}">
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}">
+                <!-- Hidden when idle, and for RDLC layouts: the report designer's own toolbar has the
+                     file name, Save, Reload, Preview and Rex, so the pane is not crowded twice. -->
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility" Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HomeViewer.IsIdle}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding HomeViewer.IsRdlcLayout}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
                 <DockPanel LastChildFill="True">
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                         <ui:Button Margin="0,0,8,0"
@@ -417,19 +461,47 @@
                 </Grid>
                 </Grid>
 
-                <GridSplitter Grid.Column="1"
-                              Width="4"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Stretch"
-                              Visibility="{Binding HomeViewer.IsCopilotOpen, Converter={StaticResource BoolToVis}}" />
-
-                <!-- Copilot chat — same design language as Preview dialog -->
-                <Border Grid.Column="2"
-                        Width="380"
+                <!-- Shared side panel: Properties, Rex or Report items, one at a time (Visual Studio style).
+                     The activity bar to its right picks which one; clicking the active icon closes it. -->
+                <Border x:Name="SidePanel" Grid.Column="1" Width="300" Visibility="Collapsed"
                         BorderThickness="1,0,0,0"
-                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
-                        Visibility="{Binding HomeViewer.IsCopilotOpen, Converter={StaticResource BoolToVis}}">
-                    <copilot:CopilotView x:Name="HomeCopilot" />
+                        BorderBrush="{DynamicResource Safi.DividerBrush}"
+                        Background="{DynamicResource Safi.SurfaceBrush}">
+                    <DockPanel>
+                        <Border DockPanel.Dock="Top" Padding="12,8,6,8" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Safi.DividerBrush}">
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Click="OnCloseSidePanel" ToolTip="Close panel" Padding="6,4"
+                                        Style="{StaticResource Safi.OutlinedButton}" BorderThickness="0" Margin="0">
+                                    <ui:SymbolIcon Symbol="Dismiss16" FontSize="13" />
+                                </Button>
+                                <TextBlock x:Name="SidePanelTitle" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource Safi.TextSecondaryBrush}" />
+                            </DockPanel>
+                        </Border>
+                        <Grid>
+                            <reports:PropertiesPanelView x:Name="SideProperties" Visibility="Collapsed" />
+                            <copilot:CopilotView x:Name="HomeCopilot" Visibility="Collapsed" />
+                            <reports:ReportOutlineView x:Name="SideOutline" Visibility="Collapsed" />
+                        </Grid>
+                    </DockPanel>
+                </Border>
+
+                <!-- Activity bar -->
+                <!-- Shown for an RDLC layout on the Design tab only (code-behind: UpdateSideBar). -->
+                <Border x:Name="ActivityBar" Grid.Column="2" Width="44" BorderThickness="1,0,0,0"
+                        BorderBrush="{DynamicResource Safi.DividerBrush}" Background="{DynamicResource Safi.BackgroundBrush}"
+                        Visibility="Collapsed">
+                    <StackPanel Margin="0,6,0,0">
+                        <ToggleButton x:Name="ActProperties" Style="{StaticResource ActivityButton}" Click="OnActivity" Tag="Properties" ToolTip="Properties (F4)">
+                            <ui:SymbolIcon Symbol="Wrench24" FontSize="20" />
+                        </ToggleButton>
+                        <ToggleButton x:Name="ActRex" Style="{StaticResource ActivityButton}" Click="OnActivity" Tag="Rex" ToolTip="Rex — AI Copilot">
+                            <ui:SymbolIcon Symbol="Sparkle24" FontSize="20" />
+                        </ToggleButton>
+                        <ToggleButton x:Name="ActOutline" Style="{StaticResource ActivityButton}" Click="OnActivity" Tag="Outline" ToolTip="Report items (Ctrl+Alt+T)">
+                            <ui:SymbolIcon Symbol="TextBulletListTree24" FontSize="20" />
+                        </ToggleButton>
+                    </StackPanel>
                 </Border>
             </Grid>
 

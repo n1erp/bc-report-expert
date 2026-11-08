@@ -12,7 +12,10 @@ Microsoft.RdlcDesigner
 *.env
 *.env.*
 !.env.example
-
+CLAUDE.md
+.mcp.json
+REA.md
+XParity.md
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
@@ -150,3 +153,8 @@ Desktop.ini
 *.bak
 *.swp
 rdl-preview-VsCodeExtension-master/
+
+scripts
+marketing
+brag-output
+validation-report.json

@@ -15,13 +15,13 @@
   <Identity
     Name="TAHERELMEHDI.ReportExpert"
     Publisher="CN=3F008BBC-A619-4112-B567-6325DD4E8CD7"
-    Version="1.0.2.0"
+    Version="2.0.0.0"
     ProcessorArchitecture="x64" />
 
   <Properties>
     <DisplayName>Report Expert</DisplayName>
-    <PublisherDisplayName>TAHER El Mehdi</PublisherDisplayName>
-    <Description>Desktop toolkit for RDLC report development — preview, Copilot edits, and Business Central report gallery.</Description>
+    <PublisherDisplayName>TAHER EL MEHDI</PublisherDisplayName>
+    <Description>RDLC designer for Business Central. Edit layouts, preview, and export.</Description>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 

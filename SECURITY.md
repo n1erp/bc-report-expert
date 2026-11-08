@@ -2,22 +2,21 @@
 
 ## Supported versions
 
-Report Expert **v1.0 Marmoset** is the current release. Security fixes target the default branch.
+**rex-2.0-baboon** is the current release. Security fixes target the default branch.
 
 ## Reporting a vulnerability
 
-Please **do not** open a public issue for sensitive security reports.
+Do not open a public issue for a sensitive report.
 
 Email **mehditaher01@outlook.com** with:
 
-- Description of the issue
+- What is wrong
 - Steps to reproduce
-- Impact assessment (if known)
-- Whether you plan a coordinated disclosure timeline
-
-We will acknowledge receipt and work on a fix as capacity allows.
+- Impact, if you know it
+- Whether you want a coordinated disclosure timeline
 
 ## Known considerations
 
-- Copilot API keys are stored in plaintext under `%AppData%\ReportExpert\copilot.json`. Treat the local machine as trusted; DPAPI encryption is on the roadmap.
-- Never commit API keys, `.env` files, or customer report data.
+- Copilot API keys are encrypted with Windows DPAPI for the current user (`dpapi:` values in `%AppData%\ReportExpert\copilot.json`). A copy of that file on another machine or user account does not reveal the key.
+- Preview uses `ReportSafetyPolicy.Trusted`, so a layout's `<Code>` block runs, as it does in Business Central. Open layouts you trust.
+- Do not commit API keys, `.env` files, or customer report data.

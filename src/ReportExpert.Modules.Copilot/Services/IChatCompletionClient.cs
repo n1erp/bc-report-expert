@@ -11,7 +11,26 @@ namespace ReportExpert.Modules.Copilot.Services;
 /// </param>
 /// <param name="Name">The tool name, qualified by the server that offers it.</param>
 /// <param name="ArgumentsJson">The arguments, as the JSON object the model produced.</param>
-public sealed record ChatToolCall(string Id, string Name, string ArgumentsJson);
+public sealed record ChatToolCall(string Id, string Name, string ArgumentsJson)
+{
+    /// <summary>
+    /// The call's <c>extra_content</c> object, as raw JSON, when the provider sent one. Gemini puts its
+    /// thought signature here (<c>extra_content.google.thought_signature</c>) and rejects the next
+    /// request with a 400 unless it comes back unchanged on the same tool call.
+    /// </summary>
+    public string? ExtraContentJson { get; init; }
+}
+
+/// <summary>
+/// An image sent with a user message (a screenshot, a report design, an error message).
+/// </summary>
+/// <param name="MediaType">The image's media type, such as <c>image/png</c> or <c>image/jpeg</c>.</param>
+/// <param name="Base64">The image bytes, base64-encoded.</param>
+public sealed record ChatImage(string MediaType, string Base64)
+{
+    /// <summary>The image as a <c>data:</c> URL, the form the chat completions API accepts.</summary>
+    public string DataUrl => $"data:{MediaType};base64,{Base64}";
+}
 
 /// <summary>
 /// One message in a conversation.
@@ -32,6 +51,12 @@ public sealed record ChatMessage(string Role, string Content)
 
     /// <summary>On an <c>assistant</c> message, the tools the model asked to run.</summary>
     public IReadOnlyList<ChatToolCall>? ToolCalls { get; init; }
+
+    /// <summary>
+    /// On a <c>user</c> message, images sent alongside the text. When present the message content
+    /// is sent as a list of parts (text, then each image) instead of a plain string.
+    /// </summary>
+    public IReadOnlyList<ChatImage>? Images { get; init; }
 
     /// <summary>Builds the result message for a completed tool call.</summary>
     /// <param name="toolCallId">The identifier from the call being answered.</param>

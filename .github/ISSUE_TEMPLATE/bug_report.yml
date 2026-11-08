@@ -1,0 +1,110 @@
+name: 🐞 Bug report
+description: Something in Report Expert (REX) is broken, crashes or gives a wrong result.
+title: "[Bug] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! The more precise the steps, the faster it gets fixed.
+        **Tip:** when REX shows an error popup, *Report a bug* opens this form with the version, Windows and the technical details already filled in.
+        Please remove anything confidential (customer data, company names, API keys) before submitting.
+  - type: input
+    id: version
+    attributes:
+      label: REX version
+      description: Shown at the bottom of Settings, for example "rex-2.0-baboon".
+      placeholder: "rex-2.0-baboon"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Windows version
+      placeholder: "Windows 11 24H2 (build 26100)"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Where did it happen?
+      options:
+        - Report designer (surface, toolbox, selection, drag and drop)
+        - Tables, groups and totals (grouping pane, tablix cell menu)
+        - Properties pane / format toolbar
+        - Expression editor
+        - Page setup, header and footer
+        - Data, datasets and parameters
+        - Preview / export (PDF, Excel, Word)
+        - Save, open, revisions, undo/redo
+        - Business Central data files (XML/JSON/CSV)
+        - AL source viewer / workspace
+        - Copilot (Rex) / MCP server
+        - Settings / themes
+        - Installer / startup
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: A short description of the problem, and the error message if there was one.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Exactly what you clicked or typed, starting from opening the layout.
+      placeholder: |
+        1. Open the layout ...
+        2. Select the table ...
+        3. Right-click > Add Group > Parent Group ...
+        4. See the error
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error details
+      description: Paste the text from the error popup (*Copy details*), stack traces or MCP/Copilot output. Personal paths and keys are removed automatically by REX.
+      render: text
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: How often does it happen?
+      options:
+        - Every time
+        - Sometimes
+        - Once
+    validations:
+      required: true
+  - type: textarea
+    id: layout
+    attributes:
+      label: Layout to reproduce (optional but very helpful)
+      description: |
+        Attach the .rdlc (zip it if GitHub refuses the extension) and, if you can, the BC data file (XML/JSON/CSV).
+        Strip confidential data first. Drag files into this box.
+  - type: input
+    id: bc-version
+    attributes:
+      label: Business Central version (if the layout comes from BC)
+      placeholder: "BC 25.2 / AL runtime 14"
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues and this is not a duplicate.
+          required: true
+        - label: I removed confidential data from the details, screenshots and attachments.
+          required: true

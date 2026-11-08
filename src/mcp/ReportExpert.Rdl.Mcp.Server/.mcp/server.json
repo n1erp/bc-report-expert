@@ -1,14 +1,14 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
-  "name": "io.github.taher-el-mehdi/rdlc-mcp",
+  "name": "io.github.n1erp/rdlc-mcp",
   "description": "Inspect and edit Microsoft RDLC report definitions: datasets, fields, parameters, tablix columns, page setup and validation.",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "packages": [
     {
       "registryType": "nuget",
       "registryBaseUrl": "https://api.nuget.org",
       "identifier": "ReportExpert.Rdl.Mcp",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "transport": {
         "type": "stdio"
       },
@@ -51,7 +51,7 @@
     }
   ],
   "repository": {
-    "url": "https://github.com/taher-el-mehdi/bc-report-expert",
+    "url": "https://github.com/n1erp/bc-report-expert",
     "source": "github"
   }
 }

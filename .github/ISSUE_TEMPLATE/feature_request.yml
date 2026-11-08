@@ -1,0 +1,68 @@
+name: ✨ Feature request
+description: Suggest something new for REX, or an improvement to an existing feature.
+title: "[Feature] "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ideas are welcome! Describe the problem first: a clear need is easier to design for than a specific button.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Report designer
+        - Tables, groups and totals
+        - Properties / formatting
+        - Expressions
+        - Charts, gauges, images, subreports
+        - Page layout and pagination
+        - Data, datasets and parameters
+        - Preview / export
+        - Business Central integration
+        - Copilot (Rex) / MCP server
+        - Workspace / AL viewer
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Who runs into it, and when? What do you do today instead?
+      placeholder: "When I build a BC sales invoice layout I need to ... but today I have to ..."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How would you like it to work? Mock-ups and screenshots help.
+    validations:
+      required: true
+  - type: textarea
+    id: report-builder
+    attributes:
+      label: How does Microsoft Report Builder / Visual Studio do it? (optional)
+      description: If the feature exists in Report Builder or the RDLC designer, describe the menu, dialog or behaviour.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: priority
+    attributes:
+      label: How important is it for you?
+      options:
+        - Nice to have
+        - Important — saves me time regularly
+        - Blocking — I cannot do my work in REX without it
+    validations:
+      required: true
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I would like to help implement this (a pull request or testing).

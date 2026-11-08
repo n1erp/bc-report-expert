@@ -43,8 +43,16 @@ internal static class ReportBindingHelper
         if (parameters.Count == 0)
             return;
 
+        // A null value is passed as null, not as an empty string, so a nullable Integer,
+        // Float, DateTime or Boolean parameter can be left blank. (REX V3, from SafiPay.)
+        // A string array is a multi-value parameter. (REX V3, from SafiPay.)
         var reportParams = parameters
-            .Select(p => new ReportParameter(p.Key, p.Value?.ToString() ?? string.Empty))
+            .Select(p => p.Value switch
+            {
+                null => new ReportParameter(p.Key, (string)null!),
+                string[] values => new ReportParameter(p.Key, values),
+                _ => new ReportParameter(p.Key, p.Value.ToString() ?? string.Empty),
+            })
             .ToArray();
 
         report.SetParameters(reportParams);

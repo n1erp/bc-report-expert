@@ -21,6 +21,8 @@
     <PackageReference Include="WPF-UI" />
     <PackageReference Include="unvell.ReoGridWPF.dll" />
     <PackageReference Include="DocumentFormat.OpenXml" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Web.WebView2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -30,7 +32,7 @@
     <ProjectReference Include="..\ReportExpert.Editors\ReportExpert.Editors.csproj" />
     <ProjectReference Include="..\ReportExpert.Modules.Preview\ReportExpert.Modules.Preview.csproj" />
     <ProjectReference Include="..\ReportExpert.Modules.Copilot\ReportExpert.Modules.Copilot.csproj" />
-    <ProjectReference Include="..\ReportExpert.RdlcDesigner\ReportExpert.RdlcDesigner.csproj" />
+    <ProjectReference Include="..\ReportExpert.Reporting.Design\ReportExpert.Reporting.Design.csproj" />
   </ItemGroup>
 
   <ItemGroup>

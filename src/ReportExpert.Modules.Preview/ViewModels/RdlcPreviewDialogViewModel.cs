@@ -113,6 +113,7 @@ public sealed partial class RdlcPreviewDialogViewModel : ObservableObject
         {
             ErrorMessage = FormatException(ex);
             StatusMessage = "Failed to parse report.";
+            ReportExpert.Common.ErrorReporting.Show(ex, "Open RDLC preview", "Preview failed", ErrorMessage);
             ReportDetails = string.Empty;
             IsBusy = false;
             NotifyCommands();
@@ -214,6 +215,12 @@ public sealed partial class RdlcPreviewDialogViewModel : ObservableObject
 
             File.Copy(OutputPath, dlg.FileName, overwrite: true);
             StatusMessage = $"Saved · {Path.GetFileName(dlg.FileName)}";
+            if (!string.IsNullOrEmpty(dir) && !string.Equals(dir, _settings.Settings.DefaultExportFolder, StringComparison.OrdinalIgnoreCase))
+            {
+                // The next save dialog opens where this one went.
+                _settings.Settings.DefaultExportFolder = dir;
+                _settings.Save();
+            }
 
             try
             {
@@ -381,6 +388,7 @@ public sealed partial class RdlcPreviewDialogViewModel : ObservableObject
             ErrorMessage = FormatException(ex);
             StatusMessage = "PDF preview failed.";
             HasPreview = false;
+            ReportExpert.Common.ErrorReporting.Show(ex, "RDLC preview", "Preview failed", ErrorMessage);
         }
         finally
         {

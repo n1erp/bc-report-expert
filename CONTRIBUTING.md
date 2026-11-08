@@ -4,18 +4,18 @@ Thanks for helping improve Report Expert. This guide is the practical path from 
 
 ## Fork and clone
 
-1. Fork [bc-report-expert](https://github.com/taher-el-mehdi/bc-report-expert) on GitHub
+1. Fork [bc-report-expert](https://github.com/n1erp/bc-report-expert) on GitHub
 2. Clone your fork:
 
 ```bash
-git clone https://github.com/taher-el-mehdi/bc-report-expert.git
+git clone https://github.com/n1erp/bc-report-expert.git
 cd bc-report-expert
 ```
 
 3. Add the upstream remote if you want to pull updates:
 
 ```bash
-git remote add upstream https://github.com/taher-el-mehdi/bc-report-expert.git
+git remote add upstream https://github.com/n1erp/bc-report-expert.git
 ```
 
 ## Create a branch
@@ -97,7 +97,7 @@ Keep the body for **why** when the change is non-obvious. Do not commit secrets,
 1. Branch from `main`
 2. Keep PRs focused — one concern per PR when practical
 3. Fill out `.github/PULL_REQUEST_TEMPLATE.md`
-4. Ensure CI is green: `dotnet build` and `dotnet test`
+4. Ensure CI is green. `main` is updated by a pull request, and the `build-and-test` job (`dotnet test ReportExpert.slnx` on Windows) must pass before that pull request is merged.
 5. Update docs under `docs/` when behavior or architecture changes
 6. Include screenshots for UI changes
 7. Do not force-push shared branches unless a maintainer asks
@@ -106,15 +106,15 @@ Reviewers look for preserved behavior, clear naming, no silent empty `catch` wit
 
 ## Report bugs
 
-Use [.github/ISSUE_TEMPLATE/bug_report.md](.github/ISSUE_TEMPLATE/bug_report.md). Search existing issues first. Include Windows version, Report Expert version, steps, expected vs actual, and redacted logs.
+Use the [bug report form](https://github.com/n1erp/bc-report-expert/issues/new?template=bug_report.yml). Search existing issues first. Include Windows version, Report Expert version (`rex-2.0-baboon`), steps, expected vs actual, and redacted logs.
 
 ## Propose features
 
-Use [.github/ISSUE_TEMPLATE/feature_request.md](.github/ISSUE_TEMPLATE/feature_request.md) or Discussions **Ideas**. Lead with the problem, then a proposal. Maintainers may ask for a minimal design sketch before implementation.
+Use the [feature request form](https://github.com/n1erp/bc-report-expert/issues/new?template=feature_request.yml) or Discussions **Ideas**. Lead with the problem, then a proposal. Maintainers may ask for a minimal design sketch before implementation.
 
 ## Add tests
 
-See [docs/TESTING.md](docs/TESTING.md). Prefer xUnit tests that do not launch the UI. LayoutSmoke is manual.
+See [docs/TESTING.md](docs/TESTING.md). Prefer xUnit tests that do not launch the UI.
 
 ## Update documentation
 

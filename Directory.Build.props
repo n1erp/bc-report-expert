@@ -5,14 +5,14 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
-    <Authors>TAHER El Mehdi</Authors>
-    <Company>Report Expert</Company>
-    <Copyright>Copyright (c) 2026 TAHER El Mehdi</Copyright>
-    <Version>1.0.2</Version>
-    <!-- Friendly label used in UI, installer, and artifact file names (v1.0 Marmoset). -->
-    <VersionDisplay>1.0</VersionDisplay>
-    <VersionCodename>Marmoset</VersionCodename>
-    <InformationalVersion>1.0 (Marmoset)</InformationalVersion>
+    <Authors>N1ERP</Authors>
+    <Company>N1ERP</Company>
+    <Copyright>Copyright (c) 2026 N1ERP</Copyright>
+    <Version>2.0.0</Version>
+    <!-- rex-2.0-baboon. VersionDisplay and VersionCodename name the installer and ZIP. -->
+    <VersionDisplay>2.0</VersionDisplay>
+    <VersionCodename>Baboon</VersionCodename>
+    <InformationalVersion>rex-2.0-baboon</InformationalVersion>
     <Product>Report Expert</Product>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>

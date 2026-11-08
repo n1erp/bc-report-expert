@@ -1,0 +1,366 @@
+﻿<UserControl x:Class="ReportExpert.App.Reports.ReportCenterView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="clr-namespace:ReportExpert.App.Reports"
+             xmlns:avalon="http://icsharpcode.net/sharpdevelop/avalonedit"
+             xmlns:design="clr-namespace:ReportExpert.Reporting.Design;assembly=ReportExpert.Reporting.Design"
+             mc:Ignorable="d"
+             d:DesignWidth="1200" d:DesignHeight="760"
+             Background="{DynamicResource Safi.BackgroundBrush}"
+             TextElement.FontFamily="{StaticResource Safi.FontFamily}">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <local:CountToVisibilityConverter x:Key="CountToVis" />
+        <local:InverseBoolToVisibilityConverter x:Key="InverseBoolToVis" />
+        <local:InverseBoolConverter x:Key="InverseBool" />
+        <local:FileNameConverter x:Key="FileName" />
+        <local:DataUriImageConverter x:Key="DataUriImage" />
+
+        <HierarchicalDataTemplate DataType="{x:Type design:DesignExplorerNode}" ItemsSource="{Binding Children}">
+            <StackPanel Orientation="Horizontal" Margin="0,2">
+                <TextBlock Text="{Binding Name}" Style="{StaticResource Safi.Body}" />
+                <Border Style="{StaticResource Safi.Chip}" Margin="8,0,0,0">
+                    <TextBlock Text="{Binding Kind}" Style="{StaticResource Safi.Caption}" FontSize="11" />
+                </Border>
+            </StackPanel>
+        </HierarchicalDataTemplate>
+        <!-- Grid check boxes in the app's themed style (the DataGrid default is a bright white square). -->
+        <Style x:Key="ThemedGridCheckBox" TargetType="CheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid x:Name="RootGrid" Margin="24,20,24,12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Page header, as SafiPay's report center (ReportListView) -->
+        <DockPanel x:Name="PageHeader" Grid.Row="0" Margin="0,0,0,16" LastChildFill="True">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Style="{StaticResource Safi.PrimaryButton}" Command="{Binding OpenFileCommand}" ToolTip="Open an RDLC layout from disk">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="FolderOpen24" FontSize="16" Margin="0,0,6,0" />
+                        <TextBlock Text="Open RDLC" />
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource Safi.OutlinedButton}" Command="{Binding NewReportCommand}" ToolTip="Create a blank report in the workspace">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="DocumentAdd24" FontSize="16" Margin="0,0,6,0" />
+                        <TextBlock Text="New" />
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource Safi.OutlinedButton}" Command="{Binding InstallTemplatesCommand}" ToolTip="Add the Business Central starter layouts">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Sparkle24" FontSize="16" Margin="0,0,6,0" />
+                        <TextBlock Text="Starter layouts" />
+                    </StackPanel>
+                </Button>
+                <Button Style="{StaticResource Safi.OutlinedButton}" Command="{Binding RefreshCommand}" ToolTip="Reload from disk" Margin="0">
+                    <ui:SymbolIcon Symbol="ArrowClockwise24" FontSize="16" />
+                </Button>
+            </StackPanel>
+            <StackPanel>
+                <TextBlock Text="Report center" Style="{StaticResource Safi.PageTitle}" />
+                <TextBlock Style="{StaticResource Safi.Caption}" Margin="0,2,0,0"
+                           Text="Business Central RDLC layouts with revision history, data preview, parameters and PDF, Excel and Word export." />
+            </StackPanel>
+        </DockPanel>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="ListColumn" Width="330" />
+                <ColumnDefinition x:Name="GapColumn" Width="16" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Report list -->
+            <Border x:Name="ListCard" Grid.Column="0" Style="{StaticResource Safi.Card}" Padding="12">
+                <DockPanel>
+                    <ui:TextBox DockPanel.Dock="Top" PlaceholderText="Search reports" Margin="0,0,0,10"
+                                Icon="{ui:SymbolIcon Search24}"
+                                Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <Expander DockPanel.Dock="Bottom" Header="Workspace layouts" Margin="0,10,0,0"
+                              Visibility="{Binding WorkspaceLayouts.Count, Converter={StaticResource CountToVis}}">
+                        <ItemsControl ItemsSource="{Binding WorkspaceLayouts}" MaxHeight="220">
+                            <ItemsControl.Template>
+                                <ControlTemplate>
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto"><ItemsPresenter /></ScrollViewer>
+                                </ControlTemplate>
+                            </ItemsControl.Template>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Style="{StaticResource Safi.OutlinedButton}" Margin="0,2" HorizontalContentAlignment="Left"
+                                            HorizontalAlignment="Stretch" BorderThickness="0" Padding="6,4"
+                                            Command="{Binding DataContext.OpenWorkspaceLayoutCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}" ToolTip="{Binding}">
+                                        <TextBlock Text="{Binding Converter={StaticResource FileName}}" Style="{StaticResource Safi.Body}" TextTrimming="CharacterEllipsis" />
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Expander>
+
+                    <ListBox ItemsSource="{Binding Reports}" SelectedItem="{Binding SelectedReport}"
+                             BorderThickness="0" Background="Transparent" HorizontalContentAlignment="Stretch"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type design:ReportListItem}">
+                                <StackPanel Margin="2,6">
+                                    <TextBlock Text="{Binding Name}" Style="{StaticResource Safi.Body}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding SourcePath, TargetNullValue='Workspace only'}" Style="{StaticResource Safi.Caption}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                        <Border Style="{StaticResource Safi.Chip}">
+                                            <TextBlock Style="{StaticResource Safi.Caption}" FontSize="11">
+                                                <Run Text="Rev." /><Run Text="{Binding Revision, Mode=OneWay}" />
+                                            </TextBlock>
+                                        </Border>
+                                        <TextBlock Style="{StaticResource Safi.Caption}" FontSize="11" VerticalAlignment="Center"
+                                                   Text="{Binding UpdatedAt, StringFormat='{}{0:g}'}" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <!-- Report detail -->
+            <Border x:Name="DetailCard" Grid.Column="2" Style="{StaticResource Safi.Card}" Padding="0">
+                <Grid>
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                                Visibility="{Binding HasReport, Converter={StaticResource InverseBoolToVis}}">
+                        <ui:SymbolIcon Symbol="DocumentTable24" FontSize="48" HorizontalAlignment="Center" Foreground="{DynamicResource Safi.TextSecondaryBrush}" />
+                        <TextBlock Text="Select a report, or open an RDLC layout" Style="{StaticResource Safi.SectionTitle}" HorizontalAlignment="Center" Margin="0,12,0,4" />
+                        <TextBlock Style="{StaticResource Safi.Caption}" HorizontalAlignment="Center" TextAlignment="Center" MaxWidth="440"
+                                   Text="Layouts keep their Business Central dataset (DataSet_Result), Code block and data source, so the saved RDLC goes straight back into your AL extension." />
+                    </StackPanel>
+
+                    <DockPanel Visibility="{Binding HasReport, Converter={StaticResource BoolToVis}}">
+                        <!-- Header -->
+                        <Border x:Name="DetailHeader" DockPanel.Dock="Top" Padding="20,16,20,12" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Safi.DividerBrush}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Title}" Style="{StaticResource Safi.PageTitle}" FontSize="19" />
+                                <TextBlock Text="{Binding SourceText}" Style="{StaticResource Safi.Caption}" Margin="0,2,0,8" />
+                                <WrapPanel>
+                                    <Border Style="{StaticResource Safi.Chip}">
+                                        <TextBlock Style="{StaticResource Safi.Caption}"><Run Text="Revision" /> <Run Text="{Binding Current.Revision, Mode=OneWay}" /></TextBlock>
+                                    </Border>
+                                    <Border Style="{StaticResource Safi.Chip}" Visibility="{Binding Current.HasCustomCode, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock Style="{StaticResource Safi.Caption}" Text="BC code block" Foreground="{DynamicResource Safi.SecondaryBrush}" />
+                                    </Border>
+                                    <Border Style="{StaticResource Safi.Chip}">
+                                        <TextBlock Style="{StaticResource Safi.Caption}"><Run Text="Data:" /> <Run Text="{Binding DataFileText, Mode=OneWay}" /></TextBlock>
+                                    </Border>
+                                    <Border Style="{StaticResource Safi.Chip}" Visibility="{Binding Warnings.Count, Converter={StaticResource CountToVis}}">
+                                        <TextBlock Style="{StaticResource Safi.Caption}" Foreground="{DynamicResource Safi.WarningBrush}"><Run Text="{Binding Warnings.Count, Mode=OneWay}" /> <Run Text="check(s)" /></TextBlock>
+                                    </Border>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Actions -->
+                        <WrapPanel x:Name="ActionBar" DockPanel.Dock="Top" Margin="20,12,20,4">
+                            <Button x:Name="SaveButton" Style="{StaticResource Safi.PrimaryButton}" Command="{Binding SaveToFileCommand}" IsEnabled="{Binding CanSaveToFile}" ToolTip="Write the layout back to its RDLC file (keeps a .bak)">
+                                <StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="Save24" FontSize="16" Margin="0,0,6,0" /><TextBlock Text="Save" /></StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource Safi.OutlinedButton}" Command="{Binding SaveAsCommand}" Content="Save as…" />
+                            <Button Style="{StaticResource Safi.OutlinedButton}" Command="{Binding UndoCommand}" IsEnabled="{Binding Current.CanUndo}" ToolTip="Previous revision">
+                                <ui:SymbolIcon Symbol="ArrowUndo24" FontSize="16" />
+                            </Button>
+                            <Button Style="{StaticResource Safi.OutlinedButton}" Command="{Binding RedoCommand}" IsEnabled="{Binding Current.CanRedo}" ToolTip="Next revision">
+                                <ui:SymbolIcon Symbol="ArrowRedo24" FontSize="16" />
+                            </Button>
+                            <Button x:Name="OpenInDesignerButton" Style="{StaticResource Safi.OutlinedButton}" Command="{Binding OpenInDesignerCommand}" IsEnabled="{Binding CanOpenInDesigner}">
+                                <StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="DesignIdeas24" FontSize="16" Margin="0,0,6,0" /><TextBlock Text="Open in designer" /></StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource Safi.SecondaryButton}" Command="{Binding ExportCommand}" CommandParameter="Pdf">
+                                <StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="DocumentPdf24" FontSize="16" Margin="0,0,6,0" /><TextBlock Text="PDF" /></StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource Safi.OutlinedButton}" Command="{Binding ExportCommand}" CommandParameter="Excel" Content="Excel" />
+                            <Button Style="{StaticResource Safi.OutlinedButton}" Command="{Binding ExportCommand}" CommandParameter="Word" Content="Word" />
+                            <Button x:Name="RemoveButton" Style="{StaticResource Safi.OutlinedButton}" Command="{Binding RemoveCommand}" ToolTip="Remove from the report center (the file stays on disk)">
+                                <ui:SymbolIcon Symbol="Delete24" FontSize="16" Foreground="{DynamicResource Safi.ErrorBrush}" />
+                            </Button>
+                        </WrapPanel>
+
+                        <Grid>
+                        <TabControl x:Name="Tabs" SelectionChanged="OnTabChanged" Margin="12,4,12,12" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource Safi.TabItem}">
+                            <!-- Visual designer -->
+                            <TabItem x:Name="DesignTab" Header="Design">
+                                <local:ReportDesignerView Margin="0,8,0,0" />
+                            </TabItem>
+
+                            <!-- Data: datasets, fields and preview (SafiPay ReportDataPanel) -->
+                            <!-- Hidden for now; the Report Data pane in Design covers fields and parameters. -->
+                            <TabItem Header="Data" Visibility="Collapsed">
+                                <Grid Margin="8,12,8,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="260" />
+                                        <ColumnDefinition Width="16" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <DockPanel Grid.Column="0">
+                                        <TextBlock DockPanel.Dock="Top" Text="Datasets" Style="{StaticResource Safi.SectionTitle}" />
+                                        <ComboBox DockPanel.Dock="Top" ItemsSource="{Binding DataSets}" SelectedItem="{Binding SelectedDataSet}" DisplayMemberPath="Name" Margin="0,0,0,8" />
+                                        <StackPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                                            <Button Style="{StaticResource Safi.OutlinedButton}" Command="{Binding AttachDataCommand}" HorizontalAlignment="Stretch" Margin="0,0,0,6"
+                                                    ToolTip="Business Central: run the report, choose Send to… › XML document, then attach the file here">
+                                                <StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="Attach24" FontSize="16" Margin="0,0,6,0" /><TextBlock Text="Attach BC data file…" /></StackPanel>
+                                            </Button>
+                                            <Button Style="{StaticResource Safi.OutlinedButton}" Command="{Binding DetachDataCommand}" HorizontalAlignment="Stretch" Content="Use sample data" />
+                                        </StackPanel>
+                                        <TextBlock DockPanel.Dock="Top" Text="Fields" Style="{StaticResource Safi.Caption}" Margin="0,0,0,4" />
+                                        <ListBox ItemsSource="{Binding SelectedDataSet.Fields}" SelectedItem="{Binding SelectedField}" BorderThickness="1"
+                                                 BorderBrush="{DynamicResource Safi.TableLinesBrush}" Background="Transparent">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate DataType="{x:Type design:DesignField}">
+                                                    <DockPanel>
+                                                        <TextBlock DockPanel.Dock="Right" Text="{Binding DataType}" Style="{StaticResource Safi.Caption}" FontSize="11" Margin="8,0,0,0" />
+                                                        <TextBlock Text="{Binding Name}" Style="{StaticResource Safi.Body}" TextTrimming="CharacterEllipsis" />
+                                                    </DockPanel>
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </DockPanel>
+                                    <DockPanel Grid.Column="2">
+                                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding PreviewSummary}" Style="{StaticResource Safi.Caption}" VerticalAlignment="Center" />
+                                            <TextBlock Text="Preview" Style="{StaticResource Safi.SectionTitle}" Margin="0" />
+                                        </DockPanel>
+                                        <DataGrid ItemsSource="{Binding Preview}" Style="{StaticResource Safi.DataGrid}" />
+                                    </DockPanel>
+                                </Grid>
+                            </TabItem>
+
+                            <!-- Parameters (SafiPay ReportParametersPanel) -->
+                            <!-- Hidden for now; the Report Data pane in Design covers fields and parameters. -->
+                            <TabItem Header="Parameters" Visibility="Collapsed">
+                                <DockPanel Margin="8,12,8,0">
+                                    <Border DockPanel.Dock="Top" Style="{StaticResource Safi.Card}" Padding="12" Margin="0,0,0,12">
+                                        <WrapPanel>
+                                            <ui:TextBox PlaceholderText="Name" Width="180" Margin="0,0,8,0" Text="{Binding NewParameterName, UpdateSourceTrigger=PropertyChanged}" />
+                                            <ComboBox Width="130" Margin="0,0,8,0" ItemsSource="{Binding ParameterTypes}" SelectedItem="{Binding NewParameterType}" />
+                                            <ui:TextBox PlaceholderText="Prompt" Width="240" Margin="0,0,8,0" Text="{Binding NewParameterPrompt, UpdateSourceTrigger=PropertyChanged}" />
+                                            <Button Style="{StaticResource Safi.PrimaryButton}" Command="{Binding AddParameterCommand}" Content="Add parameter" />
+                                        </WrapPanel>
+                                    </Border>
+                                    <DataGrid ItemsSource="{Binding Parameters}" Style="{StaticResource Safi.DataGrid}" AutoGenerateColumns="False">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="180" />
+                                            <DataGridTextColumn Header="Type" Binding="{Binding DataType}" Width="100" />
+                                            <DataGridTextColumn Header="Prompt" Binding="{Binding Prompt}" Width="*" />
+                                            <DataGridTextColumn Header="Default" Binding="{Binding DefaultValue}" Width="160" />
+                                            <DataGridCheckBoxColumn Header="Hidden" Binding="{Binding Hidden}" Width="70" ElementStyle="{StaticResource ThemedGridCheckBox}" />
+                                            <DataGridCheckBoxColumn Header="Multi" Binding="{Binding MultiValue}" Width="60" ElementStyle="{StaticResource ThemedGridCheckBox}" />
+                                            <DataGridTemplateColumn Width="48">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <Button Style="{StaticResource Safi.OutlinedButton}" BorderThickness="0" Padding="4" Margin="0" ToolTip="Remove"
+                                                                Command="{Binding DataContext.RemoveParameterCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                CommandParameter="{Binding}">
+                                                            <ui:SymbolIcon Symbol="Dismiss16" FontSize="14" />
+                                                        </Button>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </DockPanel>
+                            </TabItem>
+
+                            <!-- Layout: the RDLC XML as it would be saved, with copy and RDLC export.
+                                 The report item tree lives in the side panel (Report items). -->
+                            <TabItem x:Name="LayoutTab" Header="Layout">
+                                <DockPanel Margin="8,10,8,0">
+                                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                            <Button Style="{StaticResource Safi.OutlinedButton}" Command="{Binding CopyXmlCommand}" ToolTip="Copy the RDLC XML to the clipboard">
+                                                <StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="Copy24" FontSize="16" Margin="0,0,6,0" /><TextBlock Text="Copy XML" /></StackPanel>
+                                            </Button>
+                                            <Button Style="{StaticResource Safi.PrimaryButton}" Command="{Binding ExportRdlcCommand}" Margin="0" ToolTip="Save the layout as an .rdlc file">
+                                                <StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="ArrowDownload24" FontSize="16" Margin="0,0,6,0" /><TextBlock Text="Export RDLC" /></StackPanel>
+                                            </Button>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="RDLC XML" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Safi.TextPrimaryBrush}" VerticalAlignment="Center" />
+                                            <TextBlock Text="{Binding LayoutSummary}" Style="{StaticResource Safi.Caption}" VerticalAlignment="Center" Margin="14,0,0,0" />
+                                        </StackPanel>
+                                    </DockPanel>
+
+                                    <Border Style="{StaticResource Safi.Card}" Padding="0">
+                                        <avalon:TextEditor x:Name="XmlEditor" IsReadOnly="True" ShowLineNumbers="True" FontFamily="Cascadia Mono, Consolas"
+                                                           FontSize="12.5" Padding="6" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                                                           Background="{DynamicResource Safi.SurfaceBrush}" Foreground="{DynamicResource Safi.TextPrimaryBrush}"
+                                                           LineNumbersForeground="{DynamicResource Safi.TextSecondaryBrush}" />
+                                    </Border>
+                                </DockPanel>
+                            </TabItem>
+
+
+
+                        </TabControl>
+
+                        <!-- Visual Studio-style run button: green play, top right of the tab bar (F5). -->
+                        <Button HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,14,0" Padding="10,5"
+                                Command="{Binding PreviewCommand}" ToolTip="Preview the report (F5): choose the parameters, then view and export it"
+                                Cursor="Hand" Background="Transparent" BorderThickness="1" BorderBrush="{DynamicResource Safi.DividerBrush}">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter VerticalAlignment="Center" />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource Safi.TableHoverBrush}" />
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="Bd" Property="Opacity" Value="0.8" />
+                                        </Trigger>
+                                        <Trigger Property="IsEnabled" Value="False">
+                                            <Setter TargetName="Bd" Property="Opacity" Value="0.45" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                            <StackPanel Orientation="Horizontal">
+                                <ui:SymbolIcon Symbol="Play24" Filled="True" FontSize="16" Foreground="#3FB950" Margin="0,0,6,0" />
+                                <TextBlock Text="Preview" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource Safi.TextPrimaryBrush}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        </Grid>
+                    </DockPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Status line -->
+        <DockPanel x:Name="StatusLine" Grid.Row="2" Margin="0,10,0,0">
+            <ProgressBar DockPanel.Dock="Right" Width="120" Height="4" IsIndeterminate="True" Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" />
+            <TextBlock Text="{Binding Status}">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock" BasedOn="{StaticResource Safi.Caption}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsError}" Value="True">
+                                <Setter Property="Foreground" Value="{DynamicResource Safi.ErrorBrush}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </DockPanel>
+    </Grid>
+</UserControl>

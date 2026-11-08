@@ -6,6 +6,7 @@
 
     <UserControl.Resources>
         <helpers:BoolToVisibilityConverter x:Key="BoolToVis" />
+        <helpers:BoolToVisibilityConverter x:Key="InverseBoolToVis" Invert="True" />
         <helpers:InverseBoolConverter x:Key="InverseBoolConverter" />
         <helpers:ProviderNameConverter x:Key="ProviderNameConverter" />
     </UserControl.Resources>
@@ -70,120 +71,244 @@
                                 Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                                 BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                             <StackPanel>
-                                <TextBlock Text="Sample rows per dataset" FontWeight="SemiBold" Margin="0,0,0,6" />
-                                <TextBlock Text="Used when generating dummy data for RDLC preview (1–500)."
-                                           FontSize="12" Opacity="0.6" Margin="0,0,0,8" TextWrapping="Wrap" />
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                    <ui:Button Content="10"
-                                               MinWidth="48"
-                                               Padding="12,6"
-                                               Margin="0,0,6,0"
-                                               Appearance="{Binding Rows10Appearance}"
-                                               Command="{Binding SetRowCountCommand}"
-                                               CommandParameter="10" />
-                                    <ui:Button Content="50"
-                                               MinWidth="48"
-                                               Padding="12,6"
-                                               Margin="0,0,6,0"
-                                               Appearance="{Binding Rows50Appearance}"
-                                               Command="{Binding SetRowCountCommand}"
-                                               CommandParameter="50" />
-                                    <ui:Button Content="Custom"
-                                               MinWidth="72"
-                                               Padding="12,6"
-                                               Appearance="{Binding RowsCustomAppearance}"
-                                               Command="{Binding UseCustomRowCountCommand}" />
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal"
-                                            Margin="0,0,0,20"
-                                            Visibility="{Binding IsCustomRowCount, Converter={StaticResource BoolToVis}}">
-                                    <TextBlock Text="Number of rows"
-                                               VerticalAlignment="Center"
-                                               Margin="0,0,12,0"
-                                               Opacity="0.8" />
-                                    <ui:NumberBox Width="120"
-                                                  MinHeight="36"
-                                                  FontSize="14"
-                                                  SpinButtonPlacementMode="Inline"
-                                                  Minimum="1"
-                                                  Maximum="500"
-                                                  Value="{Binding RowsGenerated, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                  ToolTip="Custom row count (1–500)" />
-                                </StackPanel>
-
-                                <TextBlock Text="Default export folder" FontWeight="SemiBold" Margin="0,0,0,6" />
-                                <Grid>
+                                <!-- Sample rows: quick picks or any value 1–500; the summary pill shows what applies. -->
+                                <Grid Margin="0,0,0,4">
                                     <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBox Text="{Binding DefaultExportFolder, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                    <ui:Button Grid.Column="1" Margin="8,0,0,0" Content="Browse"
-                                               Command="{Binding BrowseExportFolderCommand}" />
+                                    <ui:SymbolIcon Symbol="TableSimple24" FontSize="18" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="Sample data" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" />
+                                    <Border Grid.Column="2" CornerRadius="10" Padding="10,3"
+                                            Background="{DynamicResource AccentFillColorDefaultBrush}">
+                                        <TextBlock Text="{Binding RowsSummary}" FontSize="12" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                                    </Border>
                                 </Grid>
+                                <TextBlock FontSize="12" Opacity="0.65" Margin="0,0,0,12" TextWrapping="Wrap"
+                                           Text="Rows Rex generates for each dataset when a report has no data file attached, in the designer preview and the RDLC preview. An attached Business Central XML, JSON or CSV file is always shown in full." />
+
+                                <TextBlock Text="Rows per dataset" FontSize="12" Opacity="0.8" Margin="0,0,0,6" />
+                                <WrapPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <ItemsControl ItemsSource="{Binding RowPresets}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel Orientation="Horizontal" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <ui:Button Content="{Binding Label}"
+                                                           MinWidth="52"
+                                                           Padding="12,6"
+                                                           Margin="0,0,6,6"
+                                                           ToolTip="{Binding Label, StringFormat='{}{0} rows per dataset'}"
+                                                           Command="{Binding DataContext.SetRowCountCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                           CommandParameter="{Binding}">
+                                                    <ui:Button.Style>
+                                                        <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                                            <Setter Property="Appearance" Value="Secondary" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                    <Setter Property="Appearance" Value="Primary" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </ui:Button.Style>
+                                                </ui:Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <StackPanel Orientation="Horizontal" Margin="4,0,0,6" VerticalAlignment="Top">
+                                        <TextBlock Text="or" Opacity="0.6" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                        <ui:NumberBox Width="116"
+                                                      MinHeight="34"
+                                                      SpinButtonPlacementMode="Inline"
+                                                      Minimum="1"
+                                                      Maximum="500"
+                                                      MaxDecimalPlaces="0"
+                                                      SmallChange="1"
+                                                      LargeChange="10"
+                                                      ClearButtonEnabled="False"
+                                                      Value="{Binding RowsGenerated, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      ToolTip="Any number of rows from 1 to 500" />
+                                        <TextBlock Text="rows" Opacity="0.6" VerticalAlignment="Center" Margin="8,0,0,0" />
+                                    </StackPanel>
+                                </WrapPanel>
+
+                                <Border CornerRadius="6" Padding="10,8" Margin="0,6,0,0"
+                                        Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:SymbolIcon Symbol="Info16" FontSize="14" Margin="0,0,8,0" Opacity="0.7" VerticalAlignment="Top" />
+                                        <TextBlock FontSize="12" Opacity="0.75" TextWrapping="Wrap" MaxWidth="420"
+                                                   Text="Changes apply the next time a preview renders: press Refresh on an open preview. Export dialogs open in the folder you last exported to." />
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
                         </Border>
                     </StackPanel>
                 </Grid>
 
-                <!-- Copilot AI -->
-                <StackPanel Margin="0,0,0,20">
-                    <TextBlock Text="Copilot AI" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,12" />
-                    <Border CornerRadius="8" Padding="16"
+                <!-- Copilot AI: several providers, each with its own key and model; Rex uses one at a time. -->
+                <StackPanel x:Name="ProvidersSection" Margin="0,0,0,20">
+                    <TextBlock Text="Copilot AI providers" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,4" />
+                    <TextBlock Margin="0,0,0,12" FontSize="12" Opacity="0.65" TextWrapping="Wrap"
+                               Text="Set up as many providers as you like. Rex uses the active one, and you can switch provider and model from the Rex chat. A provider without a key, or whose key is rejected, is not offered there." />
+
+                    <ItemsControl ItemsSource="{Binding ConfiguredProviders}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border CornerRadius="8" Padding="16,12" Margin="0,0,0,10"
+                                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                        BorderThickness="1">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel>
+                                        <!-- Header: name, status, active badge, actions -->
+                                        <DockPanel Margin="0,0,0,10">
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                <ui:Button Content="Use in Rex" Padding="10,3" Margin="0,0,6,0"
+                                                           Command="{Binding ActivateCommand}"
+                                                           Visibility="{Binding CanActivate, Converter={StaticResource BoolToVis}}"
+                                                           ToolTip="Make this the provider Rex sends to" />
+                                                <ui:Button Appearance="Transparent" Padding="6,3" Command="{Binding RemoveCommand}" ToolTip="Remove this provider and its key">
+                                                    <ui:SymbolIcon Symbol="Delete24" FontSize="15" />
+                                                </ui:Button>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding DisplayName}" FontSize="13.5" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                <Border CornerRadius="9" Padding="8,1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Background" Value="#22888888" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding StatusKind}" Value="Ok">
+                                                                    <Setter Property="Background" Value="#333FB950" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding StatusKind}" Value="Warning">
+                                                                    <Setter Property="Background" Value="#33D29922" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding StatusKind}" Value="Error">
+                                                                    <Setter Property="Background" Value="#33E5484D" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <TextBlock Text="{Binding StatusText}" FontSize="11" />
+                                                </Border>
+                                                <Border CornerRadius="9" Padding="8,1" Margin="6,0,0,0" VerticalAlignment="Center"
+                                                        Background="{DynamicResource AccentFillColorDefaultBrush}"
+                                                        Visibility="{Binding IsActive, Converter={StaticResource BoolToVis}}">
+                                                    <TextBlock Text="Used by Rex" FontSize="11" Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                                                </Border>
+                                            </StackPanel>
+                                        </DockPanel>
+
+                                        <!-- API key -->
+                                        <Grid Margin="0,0,0,6" Visibility="{Binding NeedsKey, Converter={StaticResource BoolToVis}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="90" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="API key" VerticalAlignment="Center" Opacity="0.8" />
+                                            <PasswordBox Grid.Column="1" Loaded="ProviderKeyBox_Loaded" PasswordChanged="ProviderKeyBox_PasswordChanged" />
+                                            <ui:Button Grid.Column="2" Margin="8,0,0,0" Content="Get key" Command="{Binding GetKeyCommand}" ToolTip="Open the provider's page to create an API key" />
+                                            <ui:Button Grid.Column="3" Margin="8,0,0,0" Content="Test" Command="{Binding TestCommand}" ToolTip="Send a short request to check the key" />
+                                        </Grid>
+                                        <Grid Margin="0,0,0,6" Visibility="{Binding NeedsKey, Converter={StaticResource InverseBoolToVis}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="90" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Key" VerticalAlignment="Center" Opacity="0.8" />
+                                            <TextBlock Grid.Column="1" Text="Not needed — Ollama runs on this computer." VerticalAlignment="Center" Opacity="0.65" />
+                                            <ui:Button Grid.Column="2" Margin="8,0,0,0" Content="Test" Command="{Binding TestCommand}" ToolTip="Check that Ollama answers" />
+                                        </Grid>
+
+                                        <!-- Endpoint (Azure, Ollama) -->
+                                        <Grid Margin="0,0,0,6" Visibility="{Binding ShowsEndpoint, Converter={StaticResource BoolToVis}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="90" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Endpoint" VerticalAlignment="Center" Opacity="0.8" />
+                                            <ui:TextBox Grid.Column="1" Text="{Binding BaseUrl, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="{Binding EndpointPlaceholder}" />
+                                        </Grid>
+                                        <Grid Margin="0,0,0,6" Visibility="{Binding IsAzure, Converter={StaticResource BoolToVis}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="90" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Deployment" VerticalAlignment="Center" Opacity="0.8" />
+                                            <ui:TextBox Grid.Column="1" Text="{Binding AzureDeployment, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Deployment name (defaults to the model)" />
+                                        </Grid>
+
+                                        <!-- Model -->
+                                        <Grid Margin="0,0,0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="90" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Model" VerticalAlignment="Center" Opacity="0.8" />
+                                            <ComboBox Grid.Column="1" ItemsSource="{Binding ModelOptions}" SelectedValuePath="ModelId"
+                                                      SelectedValue="{Binding Model, Mode=TwoWay}">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Margin="0,2">
+                                                            <TextBlock FontWeight="SemiBold" Text="{Binding DisplayName}" />
+                                                            <TextBlock FontSize="11" Opacity="0.55" Text="{Binding BestFor}" TextWrapping="Wrap" />
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </Grid>
+
+                                        <TextBlock Text="{Binding TestMessage}" Margin="90,6,0,0" FontSize="12" TextWrapping="Wrap" Opacity="0.85" />
+                                        <TextBlock Text="{Binding KeyError}" Margin="90,2,0,0" FontSize="11.5" TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+                                                   Visibility="{Binding HasKeyError, Converter={StaticResource BoolToVis}}" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Border CornerRadius="8" Padding="16,12" Margin="0,0,0,10" BorderThickness="1"
                             Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
-                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
-                        <StackPanel>
-                            <TextBlock Text="Provider" FontWeight="SemiBold" Margin="0,0,0,6" />
-                            <ComboBox ItemsSource="{Binding ProviderOptions}"
-                                      SelectedItem="{Binding SelectedProvider, Mode=TwoWay}"
-                                      Margin="0,0,0,12">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding Converter={StaticResource ProviderNameConverter}}" />
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-
-                            <TextBlock Text="API key" FontWeight="SemiBold" Margin="0,0,0,6" />
-                            <Grid Margin="0,0,0,12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <PasswordBox x:Name="ApiKeyBox"
-                                             PasswordChanged="ApiKeyBox_PasswordChanged" />
-                                <ui:Button Grid.Column="1" Margin="8,0,0,0" Content="Get key"
-                                           Command="{Binding GetApiKeyCommand}"
-                                           ToolTip="{Binding GetApiKeyToolTip}" />
-                                <ui:Button Grid.Column="2" Margin="8,0,0,0" Content="Test"
-                                           Command="{Binding TestApiKeyCommand}"
-                                           ToolTip="Send a short request to verify the API key" />
-                            </Grid>
-                            <TextBlock Text="{Binding ApiKeyTestMessage}"
-                                       Margin="0,0,0,12"
-                                       FontSize="12"
-                                       TextWrapping="Wrap"
-                                       MinHeight="16" />
-
-                            <TextBlock Text="Model" FontWeight="SemiBold" Margin="0,0,0,6" />
-                            <ComboBox ItemsSource="{Binding ModelOptions}"
-                                      SelectedValuePath="ModelId"
-                                      SelectedValue="{Binding Model, Mode=TwoWay}">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Margin="0,2">
-                                            <TextBlock FontWeight="SemiBold" Text="{Binding DisplayName}" />
-                                            <TextBlock FontSize="11" Opacity="0.65"
-                                                       Text="{Binding ModelId}" FontFamily="Consolas" />
-                                            <TextBlock FontSize="11" Opacity="0.55"
-                                                       Text="{Binding BestFor}" TextWrapping="Wrap" />
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-                        </StackPanel>
+                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                            Visibility="{Binding HasConfiguredProviders, Converter={StaticResource InverseBoolToVis}}">
+                        <TextBlock TextWrapping="Wrap" Opacity="0.75"
+                                   Text="No provider yet. Add one below — Google Gemini has a free tier, and Ollama runs models locally without a key." />
                     </Border>
+
+                    <!-- Add provider -->
+                    <StackPanel Orientation="Horizontal" Visibility="{Binding HasAddableProviders, Converter={StaticResource BoolToVis}}">
+                        <ComboBox ItemsSource="{Binding AddableProviders}" SelectedItem="{Binding ProviderToAdd, Mode=TwoWay}" MinWidth="220">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Converter={StaticResource ProviderNameConverter}}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <ui:Button Margin="8,0,0,0" Appearance="Primary" Command="{Binding AddProviderCommand}">
+                            <StackPanel Orientation="Horizontal">
+                                <ui:SymbolIcon Symbol="Add24" FontSize="14" Margin="0,0,6,0" />
+                                <TextBlock Text="Add provider" />
+                            </StackPanel>
+                        </ui:Button>
+                    </StackPanel>
                 </StackPanel>
 
                 <!-- Agent mode and the MCP servers that provide its tools -->
@@ -293,8 +418,35 @@
                     </Border>
                 </StackPanel>
 
+                <!-- Open source -->
+                <TextBlock Text="Open source" FontSize="14" FontWeight="SemiBold" Margin="0,20,0,12" />
+                <Border CornerRadius="8" Padding="16" Margin="0,0,0,12"
+                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Left" Click="OnOpenRepository" Cursor="Hand" Padding="0" Margin="0,0,16,0"
+                                Background="Transparent" BorderThickness="0" VerticalAlignment="Top"
+                                ToolTip="Open the Report Expert repository on GitHub">
+                            <Path Data="{DynamicResource Rex.GitHubMark}" Fill="{DynamicResource TextFillColorPrimaryBrush}"
+                                  Stretch="Uniform" Width="40" Height="40" />
+                        </Button>
+                        <StackPanel>
+                            <TextBlock Text="This project is open source" FontWeight="SemiBold" FontSize="13" />
+                            <TextBlock TextWrapping="Wrap" Opacity="0.75" Margin="0,4,0,10" FontSize="12"
+                                       Text="Report Expert is free and open source (MIT licence). Browse the code, report a bug, request a feature or contribute on GitHub. Bug reports go through a short form so problems can be reproduced and fixed." />
+                            <WrapPanel>
+                                <ui:Button Content="View on GitHub" Icon="{ui:SymbolIcon Open24}" Click="OnOpenRepository" Margin="0,0,8,6" Appearance="Primary" />
+                                <ui:Button Content="Report a bug" Icon="{ui:SymbolIcon Bug24}" Click="OnReportBug" Margin="0,0,8,6" />
+                                <ui:Button Content="Request a feature" Icon="{ui:SymbolIcon Lightbulb24}" Click="OnRequestFeature" Margin="0,0,8,6" />
+                                <ui:Button Content="All issues" Icon="{ui:SymbolIcon TaskListLtr24}" Click="OnOpenIssues" Margin="0,0,8,6" />
+                            </WrapPanel>
+                            <TextBlock FontSize="11" Opacity="0.55" Text="github.com/n1erp/bc-report-expert" />
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
                 <TextBlock HorizontalAlignment="Center" Margin="0,8,0,24" Opacity="0.6" FontSize="12"
-                           Text="Version 1.0 Marmoset" />
+                           Text="Version 3.0 Safi" />
             </StackPanel>
         </ScrollViewer>
     </Grid>

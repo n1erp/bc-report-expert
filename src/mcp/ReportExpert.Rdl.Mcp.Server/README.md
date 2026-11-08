@@ -26,8 +26,44 @@ Every tool takes a `filepath` as its first argument, so no working directory nee
 
 ## Tools
 
-Thirty-one tools, grouped by what they touch. Ten are read-only and safe to call without asking;
-the other twenty-one write to the file and are marked destructive so a host can prompt first.
+Forty-eight tools, grouped by what they touch. Thirteen are read-only and safe to call without asking;
+the other thirty-five write to the file and are marked destructive so a host can prompt first.
+
+### Designing a layout (rex-2.0-baboon)
+
+These drive the report design engine, the same one behind the report center and designer. Each call
+opens the layout, applies one change and writes it back, keeping Business Central's `DataSet_Result`,
+data source and code block intact. Revision history lives in the REX workspace
+(`REX_DESIGN_WORKSPACE`, default `%LocalAppData%\ReportExpert\reports`).
+
+| Tool | What it does |
+| --- | --- |
+| `get_rdl_design_model` | The designer's view: items by region with positions in inches, datasets, parameters, bands, checks, and an item's property sheet. |
+| `get_rdl_data_preview` | First rows of a dataset from the BC data file beside the layout, or generated sample rows. |
+| `place_rdl_report_item` | Drop a toolbox item: textbox, image, line, rectangle, table, list, matrix, any of 27 chart types, a field, or a header/footer band. |
+| `move_rdl_report_item` | Move and resize an item. |
+| `set_rdl_item_property` | Set one property-sheet value (font, colour, border, format, visibility, chart titles, …). |
+| `arrange_rdl_report_items` | Align, size, centre and order items, alone or relative to the first. |
+| `add_rdl_group` | Add a row or column group to a table, list or matrix. |
+| `add_rdl_total_row` | Add a totals row to a table. |
+| `export_rdl_report` | Render to PDF, Excel or Word with preview data and parameter defaults. |
+
+### Groups, rows and cells of a table or matrix
+
+The grouping pane and the tablix cell commands of the REX designer. Body indexes come from
+`get_rdl_tablix_structure`; every change keeps the hierarchy valid for the report processor (header levels,
+corner, `KeepWithGroup` and `RepeatOnNewPage` runs, merged-cell rules).
+
+| Tool | What it does |
+| --- | --- |
+| `get_rdl_tablix_structure` | Row and column hierarchies (groups, details, static members) and the cell grid with headers, corner and merges. |
+| `insert_rdl_tablix_group` | Add a parent, child or adjacent group, with optional group header/footer rows and a row-header column. |
+| `delete_rdl_tablix_group` | Delete a group only, or with its related rows and header column. |
+| `edit_rdl_tablix_group` | Rename, group expressions, sorting, filters, visibility/toggle (drilldown), page breaks, page name. |
+| `add_rdl_tablix_total` | Add a total row or column before or after a group, summing numeric fields. |
+| `insert_rdl_tablix_row_or_column` | Insert a row or column inside or outside the group of a body row or column. |
+| `delete_rdl_tablix_row_or_column` | Delete a row or column, alone or with its associated group. |
+| `merge_rdl_tablix_cells` | Merge adjacent body cells of a row, or split a merged cell. |
 
 ### Inspecting a report
 

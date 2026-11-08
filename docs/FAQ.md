@@ -2,40 +2,36 @@
 
 ## What is Report Expert?
 
-A Windows desktop tool for developing and previewing RDLC reports (especially Business Central ERP), with AI assistance.
+A Windows app for designing and previewing Business Central RDLC layouts. The current release is **rex-2.0-baboon**.
 
-## What is the current version?
+## Where do I download it?
 
-**v1.0 Marmoset.** Releases use a numeric label plus an animal codename. The installer and portable ZIP are named `ReportExpert-Setup-v1.0-Marmoset.exe` and `ReportExpert-v1.0-Marmoset-win-x64.zip`. Settings shows the same label.
+The [Microsoft Store](https://apps.microsoft.com/detail/9nwqjz08pqzd). Windows 10 (19041) or Windows 11, x64.
 
-## Does it replace Visual Studio Report Designer?
+## Does it replace Microsoft Report Builder?
 
-No. It complements VS with fast local preview, sample data, PDF export, and Copilot help. Report Expert also includes a **native layout editor** (toolbox, datasets/fields, parameters, expression editor, textboxes/rectangles/lines/images, properties, undo/save). Charts/gauges/maps and full tablix structure design remain deferred — see [rdlc-designer/Architecture.md](rdlc-designer/Architecture.md).
+For Business Central layouts, yes: open the layout, edit tables and groups, preview, and save it back. See [ReportBuilderParity.md](ReportBuilderParity.md) for what the designer covers.
 
-## Which .NET version do I need?
+## Which .NET version do I need to build it?
 
-**.NET 10 SDK**. The app targets `net10.0-windows`.
+The [.NET 10 SDK](https://dotnet.microsoft.com/download). The app targets `net10.0-windows`.
 
 ## Where are settings stored?
 
-`%AppData%\ReportExpert\` — `settings.json`, `copilot.json`, recent files/projects. Do not commit these files.
+`%AppData%\ReportExpert\` holds `copilot.json` and `mcp-servers.json`. The report workspace, settings, and recent files are in `%LocalAppData%\ReportExpert\rex.db`. Do not commit these. See [DATABASE.md](DATABASE.md).
 
-## Why is Localization in the solution but missing from the UI?
+## Why is Localization in the solution but not in the UI?
 
-The module exists but is not registered in shell navigation yet. See [Roadmap.md](Roadmap.md).
+The project builds, and it is not registered in the shell. See [Roadmap.md](Roadmap.md).
 
-## Can I use Copilot offline?
+## Can I use Rex offline?
 
-Yes — point the provider to **Ollama** (or another OpenAI-compatible local endpoint). Cloud providers need an API key.
+Yes. Point a provider at [Ollama](https://ollama.com) or another local OpenAI-compatible endpoint. Cloud providers need an API key.
 
-## Is my API key uploaded anywhere except the chosen provider?
+## Where does my API key go?
 
-No. The key is stored locally and sent only to the configured provider base URL.
-
-## Why are there `Reporting.*` projects and also parsers inside Preview?
-
-Preview owns the **live** UI path. `Reporting.*` are libraries for gradual consolidation and testing. See [Architecture.md](Architecture.md).
+It is encrypted for your Windows user and sent only to the provider you configured.
 
 ## License?
 
-MIT for Report Expert source — see [LICENSE](../LICENSE). Microsoft Business Central sample reports are not included in this repository.
+[MIT](../LICENSE) — Copyright 2026 N1ERP. Microsoft Business Central sample reports are not in this repository.
